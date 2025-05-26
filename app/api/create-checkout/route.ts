@@ -1,5 +1,3 @@
-// This bypasses the database and goes straight to Stripe
-
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/utils/stripe/config';
 import { getURL } from '@/utils/helpers';
@@ -8,7 +6,6 @@ export async function POST(request: NextRequest) {
   try {
     const { priceId, bookTitle } = await request.json();
 
-    // Create Stripe checkout session directly
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -17,7 +14,6 @@ export async function POST(request: NextRequest) {
             currency: 'usd',
             product_data: {
               name: bookTitle,
-              images: ['https://via.placeholder.com/300x400?text=Book+Cover'], // We'll replace this
             },
             unit_amount: priceId, // Price in cents
           },
