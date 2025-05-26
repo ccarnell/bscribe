@@ -1,5 +1,3 @@
-// Updated /app/page.tsx with working Stripe checkout
-
 'use client';
 
 import { useState } from 'react';
@@ -138,17 +136,15 @@ export default function HomePage() {
           </p>
 
           {/* Featured Books Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          <div id="books" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
             {featuredBooks.map((book) => (
               <div
                 key={book.id}
                 className="bg-gray-900 rounded-lg p-6 hover:bg-gray-800 transition-all duration-300 hover:scale-105"
               >
-                {/* Placeholder cover */}
-                <div className="bg-gradient-to-br from-purple-500 to-pink-500 h-48 rounded-lg mb-4 flex items-center justify-center">
-                  <span className="text-white font-bold text-center px-2 text-sm">
-                    {book.title.substring(0, 50)}...
-                  </span>
+                {/* Placeholder for book cover image */}
+                <div className="bg-gray-200 h-48 rounded-lg mb-4 flex items-center justify-center">
+                  <span className="text-gray-500 text-sm">Book Cover Image</span>
                 </div>
                 
                 <h3 className="font-bold text-lg mb-2 line-clamp-2 min-h-[3.5rem]">
@@ -159,13 +155,13 @@ export default function HomePage() {
                   {book.description}
                 </p>
                 
-                <div className="flex items-center justify-between">
-                  <span className="text-yellow-400 font-bold text-xl">
+                <div className="text-center">
+                  <div className="text-yellow-400 font-bold text-xl mb-3">
                     ${book.price}
-                  </span>
+                  </div>
                   <Button
                     variant="slim"
-                    className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 disabled:opacity-50"
+                    className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 disabled:opacity-50 w-full"
                     onClick={() => handleBuyBook(book)}
                     disabled={loading === book.id}
                   >
@@ -177,7 +173,8 @@ export default function HomePage() {
           </div>
 
           {/* Main CTA */}
-          <Button
+          <div id="bundle">
+            <Button
             variant="slim"
             className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold text-xl px-12 py-4 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50"
             onClick={handleBuyBundle}
@@ -185,6 +182,7 @@ export default function HomePage() {
           >
             {loading === 999 ? 'Loading...' : 'Get All 6 Books for $39.99 (Save Your Dignity Later)'}
           </Button>
+        </div>
         </div>
       </section>
 
@@ -257,7 +255,7 @@ export default function HomePage() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 px-4 bg-red-900">
+      <section className="py-20 px-4" style={{backgroundColor: '#ff0000'}}>
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-8">
             Stop Overthinking It
@@ -278,7 +276,7 @@ export default function HomePage() {
           </Button>
           
           <p className="text-sm text-gray-400 mt-4">
-            (30-day money-back guarantee, but we both know you won't ask for it)
+            No refunds. We don't want it.
           </p>
         </div>
       </section>
