@@ -123,10 +123,10 @@ export default function HomePage() {
           {/* Main Headline */}
           <h1 className="text-6xl md:text-8xl font-black mb-6 leading-tight">
             I Spent{' '}
-            <span className="text-yellow-400">7 Months</span>
+            <span className="text-emerald-500">7 Months</span>
             <br />
             Building This So{' '}
-            <span className="text-yellow-400">You Don't</span>
+            <span className="text-emerald-500">You Don't</span>
           </h1>
           
           {/* Subheadline */}
@@ -137,15 +137,15 @@ export default function HomePage() {
           </p>
 
           {/* Featured Books Grid */}
-          <div id="books" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          <div id="books" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-12">
             {featuredBooks.map((book) => (
               <div
                 key={book.id}
-                className="bg-gray-900 rounded-lg p-6 hover:bg-gray-800 transition-all duration-300 hover:scale-105"
+                className="bg-gray-900 rounded-lg p-4 md:p-6 hover:bg-gray-800 transition-all duration-300 hover:scale-105"
               >
                 {/* Placeholder for book cover image */}
-                <div className="bg-gray-200 h-48 rounded-lg mb-4 flex items-center justify-center">
-                  <span className="text-gray-500 text-sm">Book Cover Image</span>
+                <div className="bg-slate-700 h-48 rounded-lg mb-4 flex items-center justify-center">
+                  <span className="text-white text-sm">Book Cover Image</span>
                 </div>
                 
                 <h3 className="font-bold text-lg mb-2 line-clamp-2 min-h-[3.5rem]">
@@ -157,7 +157,7 @@ export default function HomePage() {
                 </p>
                 
                 <div className="text-center">
-                  <div className="text-yellow-400 font-bold text-xl mb-3">
+                  <div className="text-emerald-500 font-bold text-xl mb-3">
                     ${book.price}
                   </div>
                   <Button
@@ -177,21 +177,26 @@ export default function HomePage() {
           <div id="bundle">
             <Button
             variant="slim"
-            className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold text-xl px-12 py-4 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50"
+            className="bg-emerald-500 hover:bg-emerald-600 text-black font-bold text-base md:text-xl px-6 md:px-12 py-3 md:py-4 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 w-full sm:w-auto"
             onClick={handleBuyBundle}
             disabled={loading === 999}
           >
-            {loading === 999 ? 'Loading...' : 'Get All 6 Books for $39.99 (Save Your Dignity Later)'}
+            {loading === 999 ? 'Loading...' : (
+              <span>
+                <span className="hidden md:inline">Get All 6 Books for $39.99 (Save Your Dignity Later)</span>
+                <span className="md:hidden">Bundle All 6 Books - $39.99</span>
+              </span>
+            )}
           </Button>
         </div>
         </div>
       </section>
 
       {/* Problem Section */}
-      <section className="py-20 px-4 bg-gray-900">
+      <section className="py-20 px-4 bg-indigo-900">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-8">
-            Let's Be <span className="text-yellow-400">Honest</span>
+            Let's Be <span className="text-emerald-500">Honest</span>
           </h2>
           
           <div className="text-lg md:text-xl space-y-6 text-gray-300">
@@ -209,7 +214,7 @@ export default function HomePage() {
             <div className="flex justify-center">
               <Link 
                 href="/#books" 
-                className="bg-yellow-400 hover:bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold text-sm transition-all transform hover:scale-105"
+                className="bg-emerald-500 hover:bg-emerald-600 text-black px-4 py-2 rounded-lg font-bold text-sm transition-all transform hover:scale-105"
               >
                 Buy the BS
               </Link>
@@ -233,36 +238,36 @@ export default function HomePage() {
       <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-4xl font-bold text-center mb-12">
-            Join <span className="text-yellow-400">Real People</span> Who Can't Believe What They've Just Read
+            Join <span className="text-emerald-500">Real People</span> Who Can't Believe What They've Just Read
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-gray-900 p-6 rounded-lg">
-              <p className="text-gray-300 mb-4">
+            <div className="bg-indigo-800 p-6 rounded-lg">
+              <p className="text-white mb-4">
                 "You know when you're deep in a book and after a few pages you sort've "wake up" and realize you have no clue what you've been reading? That's what BScribe can offer you."
               </p>
-              <p className="text-yellow-400 font-bold">- Sarah K., Professional Overthinker</p>
+              <p className="text-emerald-500 font-bold">- Sarah K., Professional Overthinker</p>
             </div>
             
-            <div className="bg-gray-900 p-6 rounded-lg">
-              <p className="text-gray-300 mb-4">
+            <div className="bg-indigo-800 p-6 rounded-lg">
+              <p className="text-white mb-4">
                 "Finally, a self-help book that was completely helpless. Refreshingly honest and now I don't feel so alone."
               </p>
-              <p className="text-yellow-400 font-bold">- Mike D., Change Agent</p>
+              <p className="text-emerald-500 font-bold">- Mike D., Change Agent</p>
             </div>
             
-            <div className="bg-gray-900 p-6 rounded-lg">
-              <p className="text-gray-300 mb-4">
+            <div className="bg-indigo-800 p-6 rounded-lg">
+              <p className="text-white mb-4">
                 "No purchase has ever made me want to get my life back together more."
               </p>
-              <p className="text-yellow-400 font-bold">- Alex R., Parent of 8</p>
+              <p className="text-emerald-500 font-bold">- Alex R., Parent of 8</p>
             </div>
           </div>
           
           {/* Fake counter */}
           <div className="text-center mt-12">
             <p className="text-gray-400">
-              <span className="text-yellow-400 font-bold text-2xl">8+ BILLION</span> people haven't taken this opportunity yet! 
+              <span className="text-emerald-500 font-bold text-2xl">8+ BILLION</span> people haven't taken this opportunity yet! 
             </p>
           </div>
         </div>
@@ -281,7 +286,7 @@ export default function HomePage() {
           
           <Button
             variant="slim"
-            className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold text-2xl px-16 py-6 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50"
+            className="bg-emerald-500 hover:bg-emerald-600 text-black font-bold text-xl md:text-2xl px-8 md:px-16 py-4 md:py-6 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 w-full sm:w-auto"
             onClick={handleBuyBundle}
             disabled={loading === 999}
           >

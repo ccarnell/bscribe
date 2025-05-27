@@ -41,7 +41,7 @@ function SuccessContent() {
           
           <div className="space-y-4 text-left">
             <div className="flex items-start space-x-3">
-              <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+              <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                 <span className="text-black text-sm font-bold">1</span>
               </div>
               <p className="text-gray-300">
@@ -50,7 +50,7 @@ function SuccessContent() {
             </div>
             
             <div className="flex items-start space-x-3">
-              <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+              <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                 <span className="text-black text-sm font-bold">2</span>
               </div>
               <p className="text-gray-300">
@@ -60,7 +60,7 @@ function SuccessContent() {
             </div>
             
             <div className="flex items-start space-x-3">
-              <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+              <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                 <span className="text-black text-sm font-bold">3</span>
               </div>
               <p className="text-gray-300">
@@ -82,7 +82,7 @@ function SuccessContent() {
         <div className="space-y-4">
           <Button
             variant="slim"
-            className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-8 py-3 rounded-lg"
+            className="bg-emerald-500 hover:bg-emerald-600 text-black font-bold px-8 py-3 rounded-lg"
             onClick={() => window.location.href = '/'}
           >
             Back to More Bad Decisions
