@@ -11,17 +11,17 @@ export default function TermsPage() {
           <div className="space-y-6">
             <div>
               <h3 className="text-xl font-bold text-yellow-400 mb-3">1. Product Nature</h3>
-              <p>All products available on Bscribe.ai are digital downloads (PDF format) created strictly for entertainment and satirical purposes only. The content is humorous and fictional and is not intended to be taken seriously.</p>
+              <p>All products available on Bscribe.ai are digital downloads created strictly for entertainment and satirical purposes only. The content is humorous and fictional and is not intended to be taken seriously.</p>
             </div>
             
             <div>
               <h3 className="text-xl font-bold text-yellow-400 mb-3">2. No Refund Policy</h3>
-              <p>All sales are final. Due to the digital nature of our products, Bscribe.ai does not offer refunds or exchanges once the purchase has been completed.</p>
+              <p>All sales are final. Due to the digital nature of our products, Bscribe.ai does not offer refunds or exchanges once the purchase has been completed. "BSCRIBE.AI" will appear on your statement.</p>
             </div>
             
             <div>
               <h3 className="text-xl font-bold text-yellow-400 mb-3">3. Intellectual Property</h3>
-              <p>All content purchased on Bscribe.ai is the intellectual property of Cass Joel LLC. You may not redistribute, resell, or use the material for commercial purposes without explicit written consent from Cass Joel LLC.</p>
+              <p>All content purchased on Bscribe.ai is the intellectual property of Cass Joel LLC. You may not redistribute, resell, or use the material for commercial purposes without explicit written consent from Cass Joel LLC. Contact us via email at support@bscribe.ai.com, via phone at (415) 494-7022, and via mail at 8 The Grn Ste B, Dover, Delaware, 19901</p>
             </div>
             
             <div>

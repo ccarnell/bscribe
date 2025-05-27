@@ -12,9 +12,11 @@ export default function Footer() {
             <span className="text-2xl mr-2">📚</span>
             <span className="text-yellow-400 text-xl font-black">BScribe</span>
           </Link>
-          <p className="text-gray-400 text-sm mt-4 max-w-xs">
-            Self-help books that admit they're full of sh*t. 
-            Finally, some honesty in the self-improvement space.
+          <p className="text-gray-400 text-sm mt-1 max-w-xs">
+            The Tony Robbins rumor to buyout BScribe is unproven. 
+            Why would he have anything to do with this?
+            Unless he was searching for better motivational material.
+            This and all other rumors are unsubstantiated.
           </p>
         </div>
         
@@ -25,7 +27,7 @@ export default function Footer() {
             </li>
             <li className="py-3 md:py-0 md:pb-4">
               <span className="text-gray-400">
-                You don't need a link. Literally just scroll up.
+                No link. Literally just scroll up.
               </span>
             </li>
           </ul>
@@ -46,7 +48,7 @@ export default function Footer() {
             </li>
             <li className="py-3 md:py-0 md:pb-4">
               <span className="text-white">
-                Contact (please don't)
+                Contact Deez via ToS
               </span>
             </li>
           </ul>
@@ -73,21 +75,13 @@ export default function Footer() {
                 Terms of Service
               </Link>
             </li>
-            <li className="py-3 md:py-0 md:pb-4">
-              <Link
-                href="/disclaimer"
-                className="text-white transition duration-150 ease-in-out hover:text-yellow-400"
-              >
-                "This Won't Help" Disclaimer
-              </Link>
-            </li>
           </ul>
         </div>
         
         <div className="flex items-start col-span-1 text-white lg:col-span-3 lg:justify-end">
           <div className="flex flex-col space-y-4">
             <p className="text-gray-400 text-sm max-w-xs">
-              Follow for the Next Release!
+              Follow for the next release!
             </p>
             <div className="flex items-center space-x-4">
               <a
@@ -107,7 +101,7 @@ export default function Footer() {
       <div className="flex flex-col items-center justify-between py-12 space-y-4 md:flex-row bg-zinc-900">
         <div>
           <span className="text-gray-400">
-            &copy; {new Date().getFullYear()} BScribe.ai - Powered by your mom
+            &copy; 2024 BScribe.ai - Powered by your mother
           </span>
         </div>
         <div className="flex items-center space-x-4">

@@ -47,7 +47,7 @@ export default function Navlinks({ user }: NavlinksProps) {
         {user ? (
           <div className="flex items-center space-x-4">
             <span className="text-gray-400 text-sm hidden md:block">
-              Welcome back, fellow consumer of bullsh*t
+              Welcome back, fellow consumer of BS
             </span>
             <form onSubmit={(e) => handleRequest(e, SignOut, router)}>
               <input type="hidden" name="pathName" value={usePathname()} />
@@ -65,7 +65,7 @@ export default function Navlinks({ user }: NavlinksProps) {
               href="/#books" 
               className="bg-yellow-400 hover:bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold text-sm transition-all transform hover:scale-105"
             >
-              Buy Bullsh*t
+              Buy the BS
             </Link>
           </div>
         )}
