@@ -272,11 +272,11 @@ export default function HomePage() {
             onClick={handleBuyBundle}
             disabled={loading === 999}
           >
-            {loading === 999 ? 'Loading...' : 'Fine, Take My Money'}
+            {loading === 999 ? 'Loading...' : 'the red URGENCY TO BUY is irresistible'}
           </Button>
           
           <p className="text-sm text-gray-400 mt-4">
-            No refunds. We don't want it.
+            No refunds. We don't want it back.
           </p>
         </div>
       </section>
