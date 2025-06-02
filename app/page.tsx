@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import Button from '@/components/ui/Button';
 import { getStripe } from '@/utils/stripe/client';
+import { Analytics } from "@vercel/analytics/next"
 
 // Book data with prices in cents
 const featuredBooks = [
@@ -127,6 +128,7 @@ export default function HomePage() {
             <br />
             Building This So{' '}
             <span className="text-emerald-500">You Don't</span>
+            <Analytics />
           </h1>
           
           {/* Subheadline */}
