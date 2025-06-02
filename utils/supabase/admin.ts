@@ -2,23 +2,23 @@ import { toDateTime } from '@/utils/helpers';
 import { stripe } from '@/utils/stripe/config';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
-import type { Database, Tables, TablesInsert } from 'types_db';
+// import type { Database, Tables, TablesInsert } from '@/types_db';
 
-type Product = Tables<'products'>;
-type Price = Tables<'prices'>;
+// type Product = Tables<'products'>;
+// type Price = Tables<'prices'>;
 
 // Change to control trial period length
 const TRIAL_PERIOD_DAYS = 0;
 
 // Note: supabaseAdmin uses the SERVICE_ROLE_KEY which you must only use in a secure server-side context
 // as it has admin privileges and overwrites RLS policies!
-const supabaseAdmin = createClient<Database>(
+const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
-const upsertProductRecord = async (product: Stripe.Product) => {
-  const productData: Product = {
+ const upsertProductRecord = async (product: Stripe.Product) => {
+  const productData = {
     id: product.id,
     active: product.active,
     name: product.name,
@@ -40,7 +40,7 @@ const upsertPriceRecord = async (
   retryCount = 0,
   maxRetries = 3
 ) => {
-  const priceData: Price = {
+  const priceData = {
     id: price.id,
     product_id: typeof price.product === 'string' ? price.product : '',
     active: price.active,
@@ -229,7 +229,7 @@ const manageSubscriptionStatusChange = async (
     expand: ['default_payment_method']
   });
   // Upsert the latest status of the subscription object.
-  const subscriptionData: TablesInsert<'subscriptions'> = {
+  const subscriptionData = {
     id: subscription.id,
     user_id: uuid,
     metadata: subscription.metadata,
@@ -290,3 +290,9 @@ export {
   createOrRetrieveCustomer,
   manageSubscriptionStatusChange
 };
+
+export const createAdminClient = () => {
+  return supabaseAdmin;
+};
+
+export { supabaseAdmin };

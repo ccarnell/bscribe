@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     
     // Call Claude
     const message = await anthropic.messages.create({
-      model: 'claude-3-opus-20240229',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 4096, // Enough for a small book
       temperature: 0.8, // Some creativity but not too wild
       messages: [{
