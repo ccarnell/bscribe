@@ -78,7 +78,7 @@ export async function POST(request: Request) {
   try {
     const { bookId, chapterNumber, chapterTitle, previousChapters = [] } = await request.json();
 
-    // Get book details
+    // Get current book details
     const supabase = supabaseAdmin;
     const { data: book, error: bookError } = await supabase
       .from('book_generations')
@@ -116,6 +116,32 @@ export async function POST(request: Request) {
 
     console.log(`Generated content for Chapter ${chapterNumber}:`, content.substring(0, 200) + '...');
 
+    // Save chapter content to database
+    const { data: currentBook, error: fetchError } = await supabase
+      .from('book_generations')
+      .select('chapter_content')
+      .eq('id', bookId)
+      .single();
+
+    if (!fetchError && currentBook) {
+      const updatedContent = currentBook.chapter_content || [];
+      updatedContent[chapterNumber - 1] = {
+        chapterNumber,
+        chapterTitle,
+        content,
+        wordCount: content.split(' ').length,
+        generatedAt: new Date().toISOString()
+      };
+
+      await supabase
+        .from('book_generations')
+        .update({
+          chapter_content: updatedContent
+        })
+        .eq('id', bookId);
+    }
+
+    // THEN the return statement stays the same
     return Response.json({
       success: true,
       bookId,

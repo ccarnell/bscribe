@@ -34,6 +34,7 @@ export default function AdminGeneratePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          bookId: bookData?.bookId, // Pass existing bookId if regenerating
           title: bookData.title,
           subtitle: bookData.subtitle
         })
