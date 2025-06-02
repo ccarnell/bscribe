@@ -100,18 +100,39 @@ export async function POST(request: Request) {
 
     // Update database
     const supabase = supabaseAdmin;
-    const { data, error } = await supabase
-      .from('book_generations')
-      .insert({
-        title,
-        subtitle,
-        chapters: chapterTitles,
-        current_step: 'chapters',
-        status: 'draft',
-        user_id: null
-      })
-      .select()
-      .single();
+    // Check if bookId exists (regeneration) or create new record
+    let data, error;
+
+    if (bookId) {
+      // Update existing book
+      const result = await supabase
+        .from('book_generations')
+        .update({
+          chapters: chapterTitles,
+          current_step: 'chapters'
+        })
+        .eq('id', bookId)
+        .select()
+        .single();
+      data = result.data;
+      error = result.error;
+    } else {
+      // Create new book record
+      const result = await supabase
+        .from('book_generations')
+        .insert({
+          title,
+          subtitle,
+          chapters: chapterTitles,
+          current_step: 'chapters',
+          status: 'draft',
+          user_id: null
+        })
+        .select()
+        .single();
+      data = result.data;
+      error = result.error;
+    }
 
     console.log('Database result:', { data, error });
 
