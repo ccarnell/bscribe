@@ -1,6 +1,5 @@
-'use client';
-
-import { useState } from 'react';
+import { createClient } from '@/utils/supabase/server';
+import { redirect } from 'next/navigation';
 
 // The 7 book titles from your content strategy
 const BOOK_TITLES = [
@@ -13,7 +12,45 @@ const BOOK_TITLES = [
   "Zero-Shot Learning the Art of Zero-Shot Learning: A Gradient Descent Guide to Backpropagating Through Your Limiting Beliefs While Implementing Unsupervised Clustering of Your Authentic Self Using Edge Computing and Distributed Quantum Computing at Scale"
 ];
 
-export default function AdminPage() {
+// Server component for auth check
+async function AdminAuth({ children }: { children: React.ReactNode }) {
+  const supabase = createClient();
+  
+  // Check if user is authenticated
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (!user) {
+    redirect('/signin');
+  }
+  
+  // Check if user has admin role
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+    
+  if (profile?.role !== 'admin') {
+    return (
+      <div className="container mx-auto p-8">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <h1 className="text-2xl font-bold">Access Denied</h1>
+          <p>You don't have admin privileges. If you should have access, check your profile role in the database.</p>
+          <p className="mt-2 text-sm">User ID: {user.id}</p>
+          <p className="text-sm">Email: {user.email}</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return <>{children}</>;
+}
+
+// Client component for the admin interface
+'use client';
+
+import { useState } from 'react';
+
+function AdminInterface() {
   const [generating, setGenerating] = useState(false);
   const [currentBook, setCurrentBook] = useState('');
   const [results, setResults] = useState<any[]>([]);
@@ -125,5 +162,13 @@ export default function AdminPage() {
         ))}
       </div>
     </div>
+  );
+}
+
+export default async function AdminPage() {
+  return (
+    <AdminAuth>
+      <AdminInterface />
+    </AdminAuth>
   );
 }
