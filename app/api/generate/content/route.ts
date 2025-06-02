@@ -77,7 +77,7 @@ Write only the chapter content. No title, no chapter number, just the content. S
 export async function POST(request: Request) {
   try {
     const { bookId, chapterNumber, chapterTitle, previousChapters = [] } = await request.json();
-    
+
     // Get book details
     const supabase = supabaseAdmin;
     const { data: book, error: bookError } = await supabase
@@ -85,22 +85,25 @@ export async function POST(request: Request) {
       .select('*')
       .eq('id', bookId)
       .single();
-    
+
     if (bookError || !book) {
       throw new Error('Book not found');
     }
-    
-    const contextText = previousChapters.length > 0 
+
+    const contextText = previousChapters.length > 0
       ? `\n\nPREVIOUS CHAPTERS:\n${previousChapters.join('\n\n---\n\n')}`
       : '';
-    
+
+    const targetWords = Math.floor(Math.random() * 200) + 200; // 200-400 random
+    const wordInstruction = `\n\nIMPORTANT: Write exactly ${targetWords} words for this chapter.`;
+
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2000,
       temperature: 0.7,
       messages: [{
         role: 'user',
-        content: CONTENT_AGENT_PROMPT + 
+        content: CONTENT_AGENT_PROMPT +
           `\n\nBOOK TITLE: ${book.title}` +
           `\nSUBTITLE: ${book.subtitle}` +
           `\n\nALL CHAPTER TITLES:\n${book.chapters.map((ch: any, i: number) => `${i + 1}. ${ch}`).join('\n')}` +
@@ -108,11 +111,11 @@ export async function POST(request: Request) {
           contextText
       }]
     });
-    
+
     const content = response.content[0].type === 'text' ? response.content[0].text : '';
-    
+
     console.log(`Generated content for Chapter ${chapterNumber}:`, content.substring(0, 200) + '...');
-    
+
     return Response.json({
       success: true,
       bookId,
@@ -121,13 +124,13 @@ export async function POST(request: Request) {
       content,
       wordCount: content.split(' ').length
     });
-    
+
   } catch (error) {
     console.error('Content generation error:', error);
     return Response.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to generate content' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to generate content'
       },
       { status: 500 }
     );

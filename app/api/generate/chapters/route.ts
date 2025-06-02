@@ -61,24 +61,32 @@ List chapter titles as a JSON array. No markdown, no extra text.
 Example:
 ["Chapter 1: Tokenizing Your Trauma", "Chapter 2: Training Your Emotional Dataset", "Chapter 3: Deploying a Reinforcement Learning Strategy"]
 
+DO NOT include "Chapter 1:", "Chapter 2:", etc. in your output. Just provide the clean chapter titles.
+
 OUTPUT ONLY THE JSON ARRAY - NO OTHER TEXT.`;
 
 export async function POST(request: Request) {
   try {
     const { bookId, title, subtitle } = await request.json();
-    
+
+    // Add random chapter count instruction
+    const targetChapters = Math.floor(Math.random() * 13) + 3; // 3-15 random
+    const chapterInstruction = `\n\nIMPORTANT: Generate exactly ${targetChapters} chapters for this book. This number was chosen randomly to ensure variety across different books.`;
+
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
       temperature: 0.8,
       messages: [{
         role: 'user',
-        content: CHAPTER_AGENT_PROMPT + `\n\nBOOK TITLE: ${title}\nSUBTITLE: ${subtitle}`
+        content: CHAPTER_AGENT_PROMPT +
+          `\n\nBOOK TITLE: ${title}\nSUBTITLE: ${subtitle}` +
+          chapterInstruction
       }]
     });
-    
+
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    
+
     // Parse JSON array
     let chapterTitles = [];
     try {
@@ -87,23 +95,26 @@ export async function POST(request: Request) {
       console.error('Failed to parse chapter titles:', text);
       throw new Error('Invalid chapter titles format');
     }
-    
+
     console.log('Generated chapters:', chapterTitles);
-    
+
     // Update database
     const supabase = supabaseAdmin;
     const { data, error } = await supabase
       .from('book_generations')
-      .update({
+      .insert({
+        title,
+        subtitle,
         chapters: chapterTitles,
-        current_step: 'chapters'
+        current_step: 'chapters',
+        status: 'draft',
+        user_id: null
       })
-      .eq('id', bookId)
       .select()
       .single();
-    
+
     console.log('Database result:', { data, error });
-    
+
     if (error) {
       console.error('Database error:', error);
       return Response.json({
@@ -113,20 +124,20 @@ export async function POST(request: Request) {
         chapterTitles
       });
     }
-    
+
     return Response.json({
       success: true,
       bookId: data.id,
       chapterTitles: data.chapters,
       rawResponse: text
     });
-    
+
   } catch (error) {
     console.error('Chapter generation error:', error);
     return Response.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to generate chapters' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to generate chapters'
       },
       { status: 500 }
     );

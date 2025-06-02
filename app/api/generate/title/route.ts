@@ -64,7 +64,7 @@ Do not use ** for bold. Do not use any markdown. Just plain text with the exact 
 export async function POST(request: Request) {
   try {
     const { context } = await request.json();
-    
+
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
@@ -74,14 +74,14 @@ export async function POST(request: Request) {
         content: TITLE_AGENT_PROMPT + '\n\nContext: ' + (context || 'productivity and success')
       }]
     });
-    
+
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    
+
     // Simple parsing for single title format
     let title = '';
     let subtitle = '';
     let absurdity = '';
-    
+
     const lines = text.split('\n');
     for (const line of lines) {
       if (line.startsWith('TITLE:')) {
@@ -94,60 +94,27 @@ export async function POST(request: Request) {
         absurdity = line.replace('ABSURDITY:', '').trim();
       }
     }
-    
+
     // Log what we found
     console.log('Parsed:', { title, subtitle, absurdity });
-    
-    // Save to database
-    console.log('Attempting to save to database...');
-    const supabase = supabaseAdmin;
-    
-    const { data, error } = await supabase
-      .from('book_generations')
-      .insert({
-        title,
-        subtitle,
-        current_step: 'title',
-        status: 'draft',
-        user_id: null // Will be set when we add user authentication later
-      })
-      .select()
-      .single();
-    
-    console.log('Database result:', { data, error });
-    
-    if (error) {
-      console.error('Database error:', error);
-      // Don't throw - just include error in response
-      return Response.json({
-        success: false,
-        error: 'Failed to save to database',
-        details: error.message,
-        // Still return the generated content
-        title,
-        subtitle,
-        absurdity
-      });
-    }
-    
-    // Success - return with database ID
+
     return Response.json({
       success: true,
-      bookId: data.id,
-      title: data.title,
-      subtitle: data.subtitle,
+      title,
+      subtitle,
       absurdity,
       rawResponse: text
+
     });
-    
-  } catch (error) {
-    console.error('Title generation error:', error);
-    return Response.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to generate title' 
-      },
-      { status: 500 }
-    );
+      
+    } catch (error) {
+      console.error('Title generation error:', error);
+      return Response.json(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to generate title'
+        },
+        { status: 500 }
+      );
+    }
   }
-}
