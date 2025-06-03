@@ -9,6 +9,7 @@ export default function AdminGenerateInterface() {
   const [loading, setLoading] = useState(false);
   const [currentChapter, setCurrentChapter] = useState(0);
   const [completedChapters, setCompletedChapters] = useState<any[]>([]);
+  const [bookCompleted, setBookCompleted] = useState(false); // New state for book completion
 
   const generateTitle = async () => {
     setLoading(true);
@@ -34,7 +35,7 @@ export default function AdminGenerateInterface() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          bookId: bookData?.bookId, // Pass existing bookId if regenerating
+          bookId: bookData?.bookId,
           title: bookData.title,
           subtitle: bookData.subtitle
         })
@@ -86,8 +87,16 @@ export default function AdminGenerateInterface() {
         review: reviewData.review
       };
 
-      setCompletedChapters([...completedChapters, chapterComplete]);
-      setCurrentChapter(currentChapter + 1);
+      // Add the completed chapter
+      const newCompletedChapters = [...completedChapters, chapterComplete];
+      setCompletedChapters(newCompletedChapters);
+      
+      // Only increment currentChapter if it's NOT the last chapter
+      // This keeps the interface available for final chapter regeneration
+      if (currentChapter + 1 < bookData.chapterTitles.length) {
+        setCurrentChapter(currentChapter + 1);
+      }
+      
     } catch (error) {
       console.error('Error:', error);
     }
@@ -95,9 +104,21 @@ export default function AdminGenerateInterface() {
   };
 
   const regenerateLastChapter = () => {
+    // Remove the last chapter and allow regeneration
     setCompletedChapters(completedChapters.slice(0, -1));
-    setCurrentChapter(currentChapter - 1);
+    
+    // If we're regenerating the final chapter, don't change currentChapter
+    // If we're regenerating a middle chapter, decrement currentChapter
+    if (completedChapters.length < bookData.chapterTitles.length) {
+      setCurrentChapter(currentChapter - 1);
+    }
   };
+
+  const finalizeBook = () => {
+    setBookCompleted(true);
+  };
+
+  // These will be calculated inside the content section where bookData exists
 
   return (
     <div className="container mx-auto p-8 max-w-4xl text-white">
@@ -162,10 +183,19 @@ export default function AdminGenerateInterface() {
             <p className="text-blue-100"><strong>Progress:</strong> {completedChapters.length} / {bookData.chapterTitles.length} chapters completed</p>
           </div>
 
-          {currentChapter < bookData.chapterTitles.length && (
+          {(() => {
+            // Calculate these values safely inside the component where bookData exists
+            const isLastChapter = currentChapter + 1 === bookData.chapterTitles.length;
+            const allChaptersGenerated = completedChapters.length === bookData.chapterTitles.length;
+            const canGenerateNext = currentChapter < bookData.chapterTitles.length && !bookCompleted;
+
+            return (
+              <>
+                {/* Show generation interface if not completed */}
+                {canGenerateNext && (
             <div className="bg-gray-800 p-4 rounded border border-gray-600">
               <h3 className="font-bold mb-2 text-white">
-                Next: Chapter {currentChapter + 1}
+                {isLastChapter ? 'Final Chapter' : `Next: Chapter ${currentChapter + 1}`}
               </h3>
               <p className="text-gray-300">{bookData.chapterTitles[currentChapter]}</p>
               <div className="flex space-x-4 mt-2">
@@ -185,7 +215,36 @@ export default function AdminGenerateInterface() {
                 )}
               </div>
             </div>
-          )}
+                )}
+
+                {/* Show finalize button when all chapters are generated but book not finalized */}
+                {allChaptersGenerated && !bookCompleted && (
+            <div className="bg-yellow-900 p-4 rounded border border-yellow-700">
+              <h3 className="text-lg font-bold text-yellow-200 mb-2">
+                📝 All Chapters Generated!
+              </h3>
+              <p className="text-yellow-100 mb-4">
+                Review your chapters above. You can still regenerate the final chapter if needed.
+              </p>
+              <div className="flex space-x-4">
+                <Button 
+                  onClick={finalizeBook}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  ✅ Finalize Book
+                </Button>
+                <Button 
+                  onClick={regenerateLastChapter}
+                  variant="slim"
+                >
+                  🔄 Regenerate Final Chapter
+                </Button>
+              </div>
+            </div>
+                )}
+              </>
+            );
+          })()}
 
           {completedChapters.length > 0 && (
             <div className="space-y-4">
@@ -262,7 +321,8 @@ export default function AdminGenerateInterface() {
             </div>
           )}
 
-          {currentChapter >= bookData.chapterTitles.length && (
+          {/* Final completion state */}
+          {bookCompleted && (
             <div className="bg-green-900 p-4 rounded border border-green-700">
               <h3 className="text-lg font-bold text-green-200">
                 🎉 Book Complete!
