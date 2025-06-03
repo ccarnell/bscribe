@@ -1,5 +1,6 @@
+import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { supabaseAdmin } from '@/utils/supabase/admin';
+import { checkAdminAuth } from '../../../../utils/auth-helpers/api-auth';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -61,7 +62,13 @@ ABSURDITY: [One sentence about what shared delusion this calls out]
 
 Do not use ** for bold. Do not use any markdown. Just plain text with the exact format above.`;
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Check admin authentication
+  const authResult = await checkAdminAuth(request);
+  if (authResult instanceof Response) {
+    return authResult; // Return error response
+  }
+
   try {
     const { context } = await request.json();
 
@@ -104,17 +111,16 @@ export async function POST(request: Request) {
       subtitle,
       absurdity,
       rawResponse: text
-
     });
       
-    } catch (error) {
-      console.error('Title generation error:', error);
-      return Response.json(
-        {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to generate title'
-        },
-        { status: 500 }
-      );
-    }
+  } catch (error) {
+    console.error('Title generation error:', error);
+    return Response.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to generate title'
+      },
+      { status: 500 }
+    );
   }
+}

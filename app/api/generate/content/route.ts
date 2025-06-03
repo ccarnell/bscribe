@@ -1,5 +1,13 @@
+import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { supabaseAdmin } from '@/utils/supabase/admin';
+import { checkAdminAuth } from '@/utils/auth-helpers/api-auth';
+import { createClient } from '@supabase/supabase-js';
+
+// Create admin client for bypassing RLS
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -74,7 +82,12 @@ You will receive:
 ## OUTPUT FORMAT
 Write only the chapter content. No title, no chapter number, just the content. Start immediately with the chapter text.`;
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const authResult = await checkAdminAuth(request);
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+  
   try {
     const { bookId, chapterNumber, chapterTitle, previousChapters = [] } = await request.json();
 

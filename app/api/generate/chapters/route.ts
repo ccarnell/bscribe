@@ -1,5 +1,12 @@
+import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { supabaseAdmin } from '@/utils/supabase/admin';
+import { checkAdminAuth } from '@/utils/auth-helpers/api-auth';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -65,7 +72,11 @@ DO NOT include "Chapter 1:", "Chapter 2:", etc. in your output. Just provide the
 
 OUTPUT ONLY THE JSON ARRAY - NO OTHER TEXT.`;
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const authResult = await checkAdminAuth(request);
+  if (authResult instanceof Response) {
+    return authResult;
+  }
   try {
     const { bookId, title, subtitle } = await request.json();
 

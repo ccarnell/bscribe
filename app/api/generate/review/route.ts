@@ -1,4 +1,13 @@
+import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { checkAdminAuth } from '@/utils/auth-helpers/api-auth';
+import { createClient } from '@supabase/supabase-js';
+
+// Create admin client for bypassing RLS
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -78,7 +87,12 @@ const REVIEW_AGENT_PROMPT = `You are the Review Agent for BScribe.ai, responsibl
 
 OUTPUT ONLY VALID JSON - NO OTHER TEXT.`;
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const authResult = await checkAdminAuth(request);
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+
   try {
     const { content, chapterTitle, bookTitle, previousChapters = [] } = await request.json();
 
