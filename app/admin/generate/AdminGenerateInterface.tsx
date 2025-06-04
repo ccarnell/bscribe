@@ -9,7 +9,8 @@ export default function AdminGenerateInterface() {
   const [loading, setLoading] = useState(false);
   const [currentChapter, setCurrentChapter] = useState(0);
   const [completedChapters, setCompletedChapters] = useState<any[]>([]);
-  const [bookCompleted, setBookCompleted] = useState(false); // New state for book completion
+  const [bookCompleted, setBookCompleted] = useState(false);
+  const [revisionCount, setRevisionCount] = useState(0);
 
   const generateTitle = async () => {
     setLoading(true);
@@ -54,7 +55,7 @@ export default function AdminGenerateInterface() {
     setCurrentChapter(0);
   };
 
-  const generateChapterContent = async () => {
+  const generateChapterContent = async (isRetry = false) => {
     setLoading(true);
     try {
       const response = await fetch('/api/generate/content', {
@@ -82,19 +83,63 @@ export default function AdminGenerateInterface() {
       });
       const reviewData = await reviewResponse.json();
 
-      const chapterComplete = {
-        ...contentData,
-        review: reviewData.review
-      };
-
-      // Add the completed chapter
-      const newCompletedChapters = [...completedChapters, chapterComplete];
-      setCompletedChapters(newCompletedChapters);
+      // Check if revision is needed
+      if (reviewData.review.requiresRevision && !isRetry && revisionCount < 2) {
+        console.log('Revision required:', reviewData.review.revisionReason);
+        
+        // Attempt revision
+        const reviseResponse = await fetch('/api/generate/revise', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookId: bookData.bookId,
+            chapterNumber: currentChapter + 1,
+            chapterTitle: bookData.chapterTitles[currentChapter],
+            previousChapters: completedChapters.map(ch => ch.content),
+            reviewFeedback: reviewData.review
+          })
+        });
+        
+        const revisedContent = await reviseResponse.json();
+        
+        // Get review of revised content
+        const revisedReviewResponse = await fetch('/api/generate/review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: revisedContent.content,
+            chapterTitle: revisedContent.chapterTitle,
+            bookTitle: bookData.title,
+            previousChapters: completedChapters.map(ch => ch.content)
+          })
+        });
+        const revisedReviewData = await revisedReviewResponse.json();
+        
+        setRevisionCount(revisionCount + 1);
+        
+        const chapterComplete = {
+          ...revisedContent,
+          review: revisedReviewData.review,
+          wasRevised: true,
+          originalReview: reviewData.review
+        };
+        
+        setCompletedChapters([...completedChapters, chapterComplete]);
+      } else {
+        // Accept content as-is
+        const chapterComplete = {
+          ...contentData,
+          review: reviewData.review,
+          wasRevised: false
+        };
+        
+        setCompletedChapters([...completedChapters, chapterComplete]);
+      }
       
-      // Only increment currentChapter if it's NOT the last chapter
-      // This keeps the interface available for final chapter regeneration
+      // Move to next chapter
       if (currentChapter + 1 < bookData.chapterTitles.length) {
         setCurrentChapter(currentChapter + 1);
+        setRevisionCount(0); // Reset revision count for next chapter
       }
       
     } catch (error) {
@@ -104,21 +149,16 @@ export default function AdminGenerateInterface() {
   };
 
   const regenerateLastChapter = () => {
-    // Remove the last chapter and allow regeneration
     setCompletedChapters(completedChapters.slice(0, -1));
-    
-    // If we're regenerating the final chapter, don't change currentChapter
-    // If we're regenerating a middle chapter, decrement currentChapter
     if (completedChapters.length < bookData.chapterTitles.length) {
       setCurrentChapter(currentChapter - 1);
     }
+    setRevisionCount(0);
   };
 
   const finalizeBook = () => {
     setBookCompleted(true);
   };
-
-  // These will be calculated inside the content section where bookData exists
 
   return (
     <div className="container mx-auto p-8 max-w-4xl text-white">
@@ -184,63 +224,60 @@ export default function AdminGenerateInterface() {
           </div>
 
           {(() => {
-            // Calculate these values safely inside the component where bookData exists
             const isLastChapter = currentChapter + 1 === bookData.chapterTitles.length;
             const allChaptersGenerated = completedChapters.length === bookData.chapterTitles.length;
             const canGenerateNext = currentChapter < bookData.chapterTitles.length && !bookCompleted;
 
             return (
               <>
-                {/* Show generation interface if not completed */}
                 {canGenerateNext && (
-            <div className="bg-gray-800 p-4 rounded border border-gray-600">
-              <h3 className="font-bold mb-2 text-white">
-                {isLastChapter ? 'Final Chapter' : `Next: Chapter ${currentChapter + 1}`}
-              </h3>
-              <p className="text-gray-300">{bookData.chapterTitles[currentChapter]}</p>
-              <div className="flex space-x-4 mt-2">
-                <Button 
-                  onClick={generateChapterContent} 
-                  loading={loading}
-                >
-                  Generate Chapter {currentChapter + 1} Content + Review
-                </Button>
-                {completedChapters.length > 0 && (
-                  <Button 
-                    onClick={regenerateLastChapter}
-                    variant="slim"
-                  >
-                    🔄 Regenerate Last Chapter
-                  </Button>
-                )}
-              </div>
-            </div>
+                  <div className="bg-gray-800 p-4 rounded border border-gray-600">
+                    <h3 className="font-bold mb-2 text-white">
+                      {isLastChapter ? 'Final Chapter' : `Next: Chapter ${currentChapter + 1}`}
+                    </h3>
+                    <p className="text-gray-300">{bookData.chapterTitles[currentChapter]}</p>
+                    <div className="flex space-x-4 mt-2">
+                      <Button 
+                        onClick={() => generateChapterContent()} 
+                        loading={loading}
+                      >
+                        Generate Chapter {currentChapter + 1} Content + Review
+                      </Button>
+                      {completedChapters.length > 0 && (
+                        <Button 
+                          onClick={regenerateLastChapter}
+                          variant="slim"
+                        >
+                          🔄 Regenerate Last Chapter
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 )}
 
-                {/* Show finalize button when all chapters are generated but book not finalized */}
                 {allChaptersGenerated && !bookCompleted && (
-            <div className="bg-yellow-900 p-4 rounded border border-yellow-700">
-              <h3 className="text-lg font-bold text-yellow-200 mb-2">
-                📝 All Chapters Generated!
-              </h3>
-              <p className="text-yellow-100 mb-4">
-                Review your chapters above. You can still regenerate the final chapter if needed.
-              </p>
-              <div className="flex space-x-4">
-                <Button 
-                  onClick={finalizeBook}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  ✅ Finalize Book
-                </Button>
-                <Button 
-                  onClick={regenerateLastChapter}
-                  variant="slim"
-                >
-                  🔄 Regenerate Final Chapter
-                </Button>
-              </div>
-            </div>
+                  <div className="bg-yellow-900 p-4 rounded border border-yellow-700">
+                    <h3 className="text-lg font-bold text-yellow-200 mb-2">
+                      📝 All Chapters Generated!
+                    </h3>
+                    <p className="text-yellow-100 mb-4">
+                      Review your chapters above. You can still regenerate the final chapter if needed.
+                    </p>
+                    <div className="flex space-x-4">
+                      <Button 
+                        onClick={finalizeBook}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        ✅ Finalize Book
+                      </Button>
+                      <Button 
+                        onClick={regenerateLastChapter}
+                        variant="slim"
+                      >
+                        🔄 Regenerate Final Chapter
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </>
             );
@@ -251,69 +288,56 @@ export default function AdminGenerateInterface() {
               <h3 className="text-lg font-bold">Completed Chapters:</h3>
               {completedChapters.map((chapter, i) => (
                 <div key={i} className="border border-gray-600 p-4 rounded bg-gray-800">
-                  <h4 className="font-bold text-white">Chapter {i + 1}: {chapter.chapterTitle}</h4>
+                  <h4 className="font-bold text-white">
+                    Chapter {i + 1}: {chapter.chapterTitle} 
+                    {chapter.wasRevised && <span className="text-yellow-400 ml-2">(Revised)</span>}
+                  </h4>
                   <p className="text-sm text-gray-300 mb-3">
                     {chapter.wordCount} words | 
-                    Brand Consistency: {chapter.review?.brandConsistency}/5 | 
-                    Energy Level: {chapter.review?.energyLevel}/5
+                    Brand: {chapter.review?.brandConsistency}/5 | 
+                    Energy: {chapter.review?.energyLevel}/5 |
+                    Variety: {chapter.review?.varietyScore}/5
                   </p>
                   
-                  {/* Full Chapter Content */}
-                  <div className="bg-gray-900 p-4 rounded text-sm text-gray-200 mb-4 border border-gray-700">
-                    <h5 className="font-semibold mb-2 text-white">Chapter Content:</h5>
-                    <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>{chapter.content}</div>
-                  </div>
-
-                  {/* Review Agent Feedback */}
-                  {chapter.review && (
-                    <div className="bg-blue-900 p-4 rounded text-sm mb-3 border border-blue-700">
-                      <h5 className="font-semibold mb-3 text-blue-200">Review Agent Analysis:</h5>
-                      <div className="text-blue-100 space-y-2">
-                        <p><strong>Overall Assessment:</strong> {chapter.review.brandComment}</p>
-                        <p><strong>Satirical Balance:</strong> {chapter.review.satiricalBalance || 'Not specified'}</p>
-                        {chapter.review.formulaicFlags?.length > 0 && (
-                          <p><strong>Pattern Warnings:</strong> {chapter.review.formulaicFlags.join(', ')}</p>
-                        )}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
-                          <div>
-                            <strong className="text-green-300">Keep Doing:</strong>
-                            <ul className="text-sm mt-1">
-                              {chapter.review.recommendations?.keep?.map((item: string, j: number) => (
-                                <li key={j}>• {item}</li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div>
-                            <strong className="text-yellow-300">Consider:</strong>
-                            <ul className="text-sm mt-1">
-                              {chapter.review.recommendations?.consider?.map((item: string, j: number) => (
-                                <li key={j}>• {item}</li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div>
-                            <strong className="text-red-300">Watch Out:</strong>
-                            <ul className="text-sm mt-1">
-                              {chapter.review.recommendations?.watch?.map((item: string, j: number) => (
-                                <li key={j}>• {item}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
+                  {/* Revision indicator */}
+                  {chapter.wasRevised && (
+                    <div className="bg-yellow-900 p-2 rounded text-sm mb-3 border border-yellow-700">
+                      <p className="text-yellow-200">
+                        🔄 This chapter was automatically revised due to: {chapter.originalReview.revisionReason}
+                      </p>
                     </div>
                   )}
+                  
+                  {/* Content preview */}
+                  <details className="mb-3">
+                    <summary className="cursor-pointer text-emerald-400 hover:text-emerald-300">
+                      View Chapter Content
+                    </summary>
+                    <div className="bg-gray-900 p-4 rounded text-sm text-gray-200 mt-2 border border-gray-700">
+                      <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>{chapter.content}</div>
+                    </div>
+                  </details>
 
-                  {/* Screenshot Moments - Social Media Gold */}
-                  {chapter.review?.screenshotMoments && (
-                    <div className="bg-green-900 p-3 rounded border border-green-700">
-                      <strong className="text-green-200">🔥 Social Media Gold (Screenshot-Worthy Lines):</strong>
-                      <p className="text-xs text-green-300 mb-2">These are the most quotable/shareable lines from this chapter</p>
-                      <ul className="text-sm text-green-100 mt-2">
-                        {chapter.review.screenshotMoments.map((moment: string, j: number) => (
-                          <li key={j} className="mb-2 p-2 bg-green-800 rounded">"{moment}"</li>
-                        ))}
-                      </ul>
+                  {/* Review */}
+                  {chapter.review && (
+                    <div className="bg-blue-900 p-4 rounded text-sm border border-blue-700">
+                      <h5 className="font-semibold mb-3 text-blue-200">Review Analysis:</h5>
+                      <div className="text-blue-100 space-y-2">
+                        <p><strong>Assessment:</strong> {chapter.review.brandComment}</p>
+                        {chapter.review.formulaicFlags?.length > 0 && (
+                          <p><strong>Patterns Detected:</strong> {chapter.review.formulaicFlags.join(', ')}</p>
+                        )}
+                        {chapter.review.screenshotMoments && chapter.review.screenshotMoments.length > 0 && (
+                          <div className="mt-3">
+                            <strong className="text-green-300">🔥 Best Lines:</strong>
+                            <ul className="text-sm text-green-100 mt-1">
+                              {chapter.review.screenshotMoments.slice(0, 2).map((moment: string, j: number) => (
+                                <li key={j} className="italic">"{moment}"</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -321,7 +345,6 @@ export default function AdminGenerateInterface() {
             </div>
           )}
 
-          {/* Final completion state */}
           {bookCompleted && (
             <div className="bg-green-900 p-4 rounded border border-green-700">
               <h3 className="text-lg font-bold text-green-200">
@@ -329,9 +352,7 @@ export default function AdminGenerateInterface() {
               </h3>
               <p className="text-green-100">All {bookData.chapterTitles.length} chapters generated successfully.</p>
               <p className="text-green-100"><strong>Total Words:</strong> {completedChapters.reduce((sum, ch) => sum + ch.wordCount, 0)}</p>
-              <Button className="mt-2">
-                📚 Export to PDF
-              </Button>
+              <p className="text-green-100"><strong>Chapters Revised:</strong> {completedChapters.filter(ch => ch.wasRevised).length}</p>
             </div>
           )}
         </div>

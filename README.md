@@ -1,6 +1,6 @@
 # Next.js Subscription Payments Starter
 
-1
+
 > [!WARNING]  
 > This repo has been sunset and replaced by a new template: https://github.com/nextjs/saas-starter
 
