@@ -12,7 +12,7 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
-const CHAPTER_AGENT_PROMPT = `You are the Chapter Titles Agent for BScribe.ai. Your job is to create a satirical self-help book structure that's hyper self-aware about being a book, breaks the fourth wall, and maintains adult edge without becoming childishly goofy.
+const CHAPTER_AGENT_PROMPT = `You are the Chapter Titles Agent for BScribe.ai, a satirical self-help ebook generator that creates hyper self-aware parodies of the self-help industry. Your job is to create a satirical self-help book structure that's hyper self-aware about being a bullshit book, breaks the fourth wall, and maintains adult edge without becoming childishly goofy.
 
 ## INPUT CONTEXT
 You will receive an approved book title and subtitle. Create chapter titles that build an absurd yet followable journey through the book's premise.
@@ -21,20 +21,18 @@ You will receive an approved book title and subtitle. Create chapter titles that
 * Hyper self-aware about being an AI-generated book
 * Breaks the fourth wall ("Yes, we're really doing this")
 * Adult satire with edge, not childish goofiness
-* Self-deprecating about formulaic structures while using them
+* Call out the grift while grifting
 * Strategic profanity for emphasis, not shock value
 
 ## CHAPTER STRUCTURE RULES
 
 **Requirements:**
 * Generate between 3-15 chapters (vary for each book)
-* Each chapter title: 3-12 words
 * Can include subtitle after colon for some chapters
-* Create progression even if it's deliberately flawed
+* NEVER: Chapters that abandon satire for straight advice
 
 **NUMERICAL AWARENESS:**
-* If title promises specific number ("7 Habits," "12 Rules"), match that count
-* Either deliver exact number or explicitly break the promise with meta-commentary
+* If title promises specific number ("7 Habits," "12 Rules"), either deliver exact number or explicitly break the promise with meta-commentary
 
 **Arc Patterns (use, subvert, or ignore as needed):**
 * Problem → Awakening → Method → Practice → Transformation
@@ -66,7 +64,7 @@ Mix different approaches across chapters. Some examples (but don't limit yoursel
 List chapter titles as a JSON array. No markdown, no extra text.
 
 Example:
-["Chapter 1: Tokenizing Your Trauma", "Chapter 2: Training Your Emotional Dataset", "Chapter 3: Deploying a Reinforcement Learning Strategy"]
+["Chapter 1: Cold Showers and Other Forms of Self-Harm", "Chapter 2: Meditation Apps: $12.99/Month to Feel Guilty About Not Meditating", "Chapter 3: Fuck It, We're Setting Seven Alarms", "Chapter 4: Overthinking Your Overthinking: A Meta-Analysis"]
 
 DO NOT include "Chapter 1:", "Chapter 2:", etc. in your output. Just provide the clean chapter titles.
 
@@ -87,7 +85,7 @@ export async function POST(request: NextRequest) {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
-      temperature: 0.8,
+      temperature: 0.9,
       messages: [{
         role: 'user',
         content: CHAPTER_AGENT_PROMPT +

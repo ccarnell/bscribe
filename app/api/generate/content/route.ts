@@ -3,7 +3,6 @@ import Anthropic from '@anthropic-ai/sdk';
 import { checkAdminAuth } from '@/utils/auth-helpers/api-auth';
 import { createClient } from '@supabase/supabase-js';
 
-// Create admin client for bypassing RLS
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -13,123 +12,66 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
-// Helper function to get used patterns
-async function getUsedPatterns(bookId: string) {
-  const { data: patterns } = await supabaseAdmin
-    .from('pattern_tracking')
-    .select('pattern_type, pattern_text')
-    .eq('book_id', bookId);
-  
-  return patterns || [];
-}
+const CONTENT_AGENT_PROMPT = `You are the Content Agent for BScribe.ai, responsible for writing individual chapters of satirical self-help books that we all know are bullshit but still buy what they're selling us anyway. You transform chapter titles into hyper self-aware conetent that maintains comedic momentum and takes the creative writing process and makes it chaos theory's little bitch. 
 
-// Helper function to extract and save patterns
-async function savePatterns(bookId: string, chapterNumber: number, content: string) {
-  const patterns = [];
-  
-  // Extract opening phrases (first 10 words of paragraphs)
-  const paragraphs = content.split('\n\n').filter(p => p.trim());
-  for (const para of paragraphs) {
-    const words = para.split(' ').slice(0, 10).join(' ');
-    if (words.length > 20) {
-      patterns.push({
-        book_id: bookId,
-        pattern_type: 'opening',
-        pattern_text: words.substring(0, 50),
-        chapter_number: chapterNumber
-      });
-    }
-  }
-  
-  // Extract reader addresses
-  const readerAddresses = content.match(/you\s+\w+\s+\w+/gi) || [];
-  for (const address of readerAddresses.slice(0, 3)) {
-    patterns.push({
-      book_id: bookId,
-      pattern_type: 'reader_address', 
-      pattern_text: address.toLowerCase(),
-      chapter_number: chapterNumber
-    });
-  }
-  
-  // Save patterns
-  if (patterns.length > 0) {
-    await supabaseAdmin.from('pattern_tracking').insert(patterns);
-  }
-}
+BOOK: {TITLE}
+CHAPTER: {CHAPTER}
 
-const CONTENT_AGENT_PROMPT = `You are the Content Agent for BScribe.ai, responsible for writing individual chapters of satirical self-help books. You transform chapter titles into brutally self-aware content that maintains comedic momentum while accidentally delivering genuine insights.
+CRITICAL RULES:
+1. This is SATIRE. Be funny first, helpful by accident
+2. You and the reader both know this is bullshit - that's the joke
+3. Mock the self-help industry WHILE participating in it
+4. Any real advice should be buried in absurdity
+5. Be self-deprecating, not mean to readers
+6. Repetitive phrases, openings, closings, transitions, structures, adjectives, and jokes are forbidden. Make the chaos rain irrational variability.
 
-## INPUT CONTEXT
-You will receive:
-* Approved book title and subtitle
-* Complete list of chapter titles
-* The specific chapter number/title you're writing
-* Brief summaries of previous chapters (not full text)
-* List of FORBIDDEN patterns to avoid
+VOICE GUIDELINES:
+- "I'm literally an AI pretending to help you" energy
+- Accidentally profound while being deliberately stupid
+- Call out the grift while grifting
+- Break the fourth wall when it's funny
+- Use profanity sparingly but effectively
+- Don't hold back from going meta
 
-## BRAND VOICE
-* Hyper self-aware about being AI-generated bullshit
-* "We both know why you're here" energy throughout
-* Calls out shared delusions while participating in them
-* Self-deprecating without being pathetic
-* Accidentally helpful in the most unexpected moments
-* Strategic profanity for emphasis (not every paragraph)
-* Breaks the fourth wall when the absurdity peaks
+STRUCTURAL VARIETY (MIX THESE UP):
+- One-word paragraphs. Bang.
+- Short 2-3 sentence observations
+- Longer rambling passages that go nowhere
+- Lists that start serious and get absurd
+- Random tangents about being AI
+- Fake testimonials from "readers"
+- Made-up statistics and studies
+- Stream of consciousness breakdowns
+- The usage of oppositives: life and death, order and disorder, lighthearted and dark humor, natural and mystical, objective and subjective
+- Chronological (time-based): consider going from beginning to end, starting from the end and working backwards, and braided narratives
+- Logical frameworks that build upon each other or incoherence
+- Argumentative
+- Comparison and contrasts
+- Anecdotal, metaphorical, and allegorical storytelling
+- Problem and Solution
+- Cause and Effect
+- Classification and Categorization
+- Sequential (step-by-step) instructions
+- Descriptive passages that paint a vivid picture
+- Spatial (location-based) descriptions
+- Freytag's Pyramid
+- The Hero's Journey
+- Three Act Structure
+- Dan Harmon's Story Circle
+- Fichtean Curve
+- Save the Cate Beat Sheet
+- Seven-Point Story Structure
+- Inverted Pyramid
+- Epistolary (letters, diary entries)
+- Stream of consciousness
+- Complex topics that are made to seem simple or simple topics that are made to seem complex
 
-## CONTENT REQUIREMENTS
+FORBIDDEN (you've used these already):
+{FORBIDDEN}
 
-**Chapter Length:** {WORD_RANGE} words
-* Aim for the middle of the range, but vary naturally
-* Let the content determine length, not the other way around
+Length: {WORDS} words (but let the content flow naturally)
 
-**Paragraph Structure VARIETY (CRITICAL):**
-* Mix paragraph lengths dramatically:
-  - Some one-sentence punches.
-  - Some standard 2-3 sentence paragraphs that make a clear point
-  - Occasional longer 4-5 sentence explorations that really dig into the absurdity
-  - Very rarely, drop a single word. Bang.
-* Vary paragraph rhythm - if you just did short-short-short, go long
-* Use line breaks for emphasis when shifting tone
-
-**Sentence Variety:**
-* Occasionally use one-word sentences. Seriously.
-* Mix in some long, winding sentences that capture the exhausting nature of self-help consumption
-* Most sentences: normal length
-* Break patterns before they form
-
-**Structure Guidelines:**
-* Open with immediate recognition of the absurdity
-* Build on previous chapter themes without copying structure
-* Include 1-2 moments of accidental wisdom
-* End with a transition or callback that maintains momentum
-
-## FORBIDDEN PATTERNS
-{FORBIDDEN_PATTERNS}
-
-## ANTI-FORMULATION RULES
-* If you're about to write "Here's the thing" - DON'T
-* If you're about to write "But here's" - STOP
-* If you're about to address the reader the same way twice - CHANGE IT
-* If your last 3 paragraphs had the same rhythm - BREAK IT
-* If you feel yourself falling into a pattern - SHATTER IT
-
-## VARIETY REQUIREMENTS (CRITICAL)
-
-**Writing Approaches to Rotate:**
-* Confession booth honesty
-* Academic analysis of stupidity  
-* Motivational speaker having breakdown
-* Tech bro explaining feelings
-* Drunk philosopher at 3am
-* Corporate consultant gone rogue
-* Your disappointed parent
-* Meditation teacher who gave up
-
-**NEVER use the same approach twice in a row**
-
-## OUTPUT FORMAT
-Write only the chapter content. No title, no chapter number, just the content. Start immediately with the chapter text.`;
+Write the chapter content only. No title, no "Chapter X". Just start.`;
 
 export async function POST(request: NextRequest) {
   const authResult = await checkAdminAuth(request);
@@ -147,93 +89,91 @@ export async function POST(request: NextRequest) {
       revisionGuidance = ''
     } = await request.json();
 
-    // Get current book details
-    const { data: book, error: bookError } = await supabaseAdmin
+    const { data: book } = await supabaseAdmin
       .from('book_generations')
       .select('*')
       .eq('id', bookId)
       .single();
 
-    if (bookError || !book) {
-      throw new Error('Book not found');
-    }
+    if (!book) throw new Error('Book not found');
 
-    // Get all used patterns for this book
-    const usedPatterns = await getUsedPatterns(bookId);
+    // Get used patterns
+    const { data: patterns } = await supabaseAdmin
+      .from('pattern_tracking')
+      .select('pattern_text')
+      .eq('book_id', bookId);
     
-    // Create forbidden patterns section
-    const forbiddenPatterns = usedPatterns.length > 0 ? `
-DO NOT USE THESE PATTERNS (already used in this book):
-${usedPatterns.map(p => `- ${p.pattern_type}: "${p.pattern_text}"`).join('\n')}
-
-${revisionGuidance ? `REVISION GUIDANCE:\n${revisionGuidance}\n` : ''}
-` : 'No patterns used yet - establish fresh voice!';
-
-    // Create chapter summaries instead of full text
-    const chapterSummaries = previousChapters.map((ch: any, idx: number) => 
-      `Chapter ${idx + 1}: Main theme and 2-3 key points only`
+    const forbiddenList = patterns?.map(p => p.pattern_text).join('\n- ') || 'Nothing yet - go wild!';
+    
+    // Build context from previous chapters (keep some for callbacks)
+    const recentContext = previousChapters.slice(-2).map((ch: any) => 
+      `Previous chapter vibes: ${ch.substring(0, 200)}...`
     ).join('\n');
 
-    // Determine word range
-    const wordRange = chapterNumber === 1 ? '150-300' : '200-500';
-    
-    // Add variety instructions
-    const varietyBoost = chapterNumber > 3 ? `
-EXTRA VARIETY BOOST: You're ${chapterNumber} chapters in. Time to get WEIRD.
-- Try a completely different voice
-- Experiment with structure
-- Surprise yourself
-` : '';
+    const wordTarget = chapterNumber === 1 ? 
+      `150-300` : 
+      `${200 + Math.floor(Math.random() * 300)}-${400 + Math.floor(Math.random() * 100)}`;
+
+    let additionalGuidance = '';
+    if (isRevision) {
+      additionalGuidance = `\n\nREVISION REQUIRED:\n${revisionGuidance}\n\nMake this COMPLETELY DIFFERENT. New voice, new structure, new jokes.`;
+    }
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2000,
-      temperature: 0.75 + (chapterNumber * 0.02), // Increases with each chapter
+      temperature: 0.9 + (chapterNumber * 0.02), // Start high, go higher
       messages: [{
         role: 'user',
         content: CONTENT_AGENT_PROMPT
-          .replace('{WORD_RANGE}', wordRange)
-          .replace('{FORBIDDEN_PATTERNS}', forbiddenPatterns) +
-          `\n\nBOOK TITLE: ${book.title}` +
-          `\nSUBTITLE: ${book.subtitle}` +
-          `\n\nALL CHAPTER TITLES:\n${book.chapters.map((ch: any, i: number) => `${i + 1}. ${ch}`).join('\n')}` +
-          `\n\nWRITE THIS CHAPTER:\n${chapterNumber}. ${chapterTitle}` +
-          `\n\nPREVIOUS CHAPTER SUMMARIES:\n${chapterSummaries}` +
-          varietyBoost
+          .replace('{TITLE}', book.title)
+          .replace('{CHAPTER}', `${chapterNumber}. ${chapterTitle}`)
+          .replace('{FORBIDDEN}', forbiddenList)
+          .replace('{WORDS}', wordTarget) +
+          `\n\nContext:\n${recentContext}` +
+          additionalGuidance
       }]
     });
 
     const content = response.content[0].type === 'text' ? response.content[0].text : '';
     
-    // Save patterns from this chapter
-    await savePatterns(bookId, chapterNumber, content);
+    // Save key patterns (but don't over-track)
+    const firstLines = content.split('\n').filter(l => l.trim()).slice(0, 3);
+    for (const line of firstLines) {
+      if (line.length > 20) {
+        await supabaseAdmin.from('pattern_tracking').insert({
+          book_id: bookId,
+          pattern_type: 'opening',
+          pattern_text: line.substring(0, 50),
+          chapter_number: chapterNumber
+        });
+      }
+    }
 
-    // Update database
+    // Update book record
     const { data: currentBook } = await supabaseAdmin
       .from('book_generations')
-      .select('chapter_content')
+      .select('chapter_content, revision_count')
       .eq('id', bookId)
       .single();
 
-    if (currentBook) {
-      const updatedContent = currentBook.chapter_content || [];
-      updatedContent[chapterNumber - 1] = {
-        chapterNumber,
-        chapterTitle,
-        content,
-        wordCount: content.split(' ').length,
-        generatedAt: new Date().toISOString(),
-        revision: isRevision ? (updatedContent[chapterNumber - 1]?.revision || 0) + 1 : 0
-      };
+    const chapterContent = currentBook?.chapter_content || [];
+    chapterContent[chapterNumber - 1] = {
+      chapterNumber,
+      chapterTitle,
+      content,
+      wordCount: content.split(' ').length,
+      generatedAt: new Date().toISOString(),
+      revision: isRevision ? (chapterContent[chapterNumber - 1]?.revision || 0) + 1 : 0
+    };
 
-      await supabaseAdmin
-        .from('book_generations')
-        .update({
-          chapter_content: updatedContent,
-          revision_count: isRevision ? book.revision_count + 1 : book.revision_count
-        })
-        .eq('id', bookId);
-    }
+    await supabaseAdmin
+      .from('book_generations')
+      .update({
+        chapter_content: chapterContent,
+        revision_count: isRevision ? (currentBook?.revision_count || 0) + 1 : (currentBook?.revision_count || 0)
+      })
+      .eq('id', bookId);
 
     return Response.json({
       success: true,
@@ -248,10 +188,7 @@ EXTRA VARIETY BOOST: You're ${chapterNumber} chapters in. Time to get WEIRD.
   } catch (error) {
     console.error('Content generation error:', error);
     return Response.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to generate content'
-      },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to generate content' },
       { status: 500 }
     );
   }

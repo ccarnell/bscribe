@@ -55,40 +55,15 @@ export default function AdminGenerateInterface() {
     setCurrentChapter(0);
   };
 
-  const generateChapterContent = async (isRetry = false) => {
+  const generateChapterContent = async () => {
     setLoading(true);
-    try {
-      const response = await fetch('/api/generate/content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bookId: bookData.bookId,
-          chapterNumber: currentChapter + 1,
-          chapterTitle: bookData.chapterTitles[currentChapter],
-          previousChapters: completedChapters.map(ch => ch.content)
-        })
-      });
-      const contentData = await response.json();
+    let attempts = 0;
+    const maxAttempts = 2;
 
-      // Get review
-      const reviewResponse = await fetch('/api/generate/review', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: contentData.content,
-          chapterTitle: contentData.chapterTitle,
-          bookTitle: bookData.title,
-          previousChapters: completedChapters.map(ch => ch.content)
-        })
-      });
-      const reviewData = await reviewResponse.json();
-
-      // Check if revision is needed
-      if (reviewData.review.requiresRevision && !isRetry && revisionCount < 2) {
-        console.log('Revision required:', reviewData.review.revisionReason);
-        
-        // Attempt revision
-        const reviseResponse = await fetch('/api/generate/revise', {
+    while (attempts < maxAttempts) {
+      try {
+        // Generate content
+        const response = await fetch('/api/generate/content', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -96,55 +71,49 @@ export default function AdminGenerateInterface() {
             chapterNumber: currentChapter + 1,
             chapterTitle: bookData.chapterTitles[currentChapter],
             previousChapters: completedChapters.map(ch => ch.content),
-            reviewFeedback: reviewData.review
+            isRevision: attempts > 0
           })
         });
-        
-        const revisedContent = await reviseResponse.json();
-        
-        // Get review of revised content
-        const revisedReviewResponse = await fetch('/api/generate/review', {
+        const contentData = await response.json();
+
+        // Get review
+        const reviewResponse = await fetch('/api/generate/review', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            content: revisedContent.content,
-            chapterTitle: revisedContent.chapterTitle,
-            bookTitle: bookData.title,
-            previousChapters: completedChapters.map(ch => ch.content)
+            content: contentData.content,
+            chapterTitle: contentData.chapterTitle
           })
         });
-        const revisedReviewData = await revisedReviewResponse.json();
-        
-        setRevisionCount(revisionCount + 1);
-        
-        const chapterComplete = {
-          ...revisedContent,
-          review: revisedReviewData.review,
-          wasRevised: true,
-          originalReview: reviewData.review
-        };
-        
-        setCompletedChapters([...completedChapters, chapterComplete]);
-      } else {
-        // Accept content as-is
-        const chapterComplete = {
+        const reviewResult = await reviewResponse.json();
+
+        if (reviewResult.success && reviewResult.review.requiresRevision && attempts < maxAttempts - 1) {
+          console.log(`Revision needed: ${reviewResult.review.reason}`);
+          attempts++;
+          continue; // Try again
+        }
+
+        // Accept this version
+        const finalChapter = {
           ...contentData,
-          review: reviewData.review,
-          wasRevised: false
+          review: reviewResult.review,
+          attempts: attempts + 1
         };
-        
-        setCompletedChapters([...completedChapters, chapterComplete]);
+
+        setCompletedChapters([...completedChapters, finalChapter]);
+
+        if (currentChapter + 1 < bookData.chapterTitles.length) {
+          setCurrentChapter(currentChapter + 1);
+        }
+
+        break;
+
+      } catch (error) {
+        console.error('Error:', error);
+        break;
       }
-      
-      // Move to next chapter
-      if (currentChapter + 1 < bookData.chapterTitles.length) {
-        setCurrentChapter(currentChapter + 1);
-        setRevisionCount(0); // Reset revision count for next chapter
-      }
-      
-    } catch (error) {
-      console.error('Error:', error);
     }
+
     setLoading(false);
   };
 
@@ -163,7 +132,7 @@ export default function AdminGenerateInterface() {
   return (
     <div className="container mx-auto p-8 max-w-4xl text-white">
       <h1 className="text-3xl font-bold mb-8">BScribe Book Generator</h1>
-      
+
       {step === 'start' && (
         <div className="space-y-4">
           <h2 className="text-xl">Ready to generate a new satirical self-help book?</h2>
@@ -217,7 +186,7 @@ export default function AdminGenerateInterface() {
       {step === 'content' && bookData && (
         <div className="space-y-6">
           <h2 className="text-xl">Content Generation Progress</h2>
-          
+
           <div className="bg-blue-900 p-4 rounded border border-blue-700">
             <p className="text-blue-100"><strong>Book:</strong> {bookData.title}</p>
             <p className="text-blue-100"><strong>Progress:</strong> {completedChapters.length} / {bookData.chapterTitles.length} chapters completed</p>
@@ -237,14 +206,14 @@ export default function AdminGenerateInterface() {
                     </h3>
                     <p className="text-gray-300">{bookData.chapterTitles[currentChapter]}</p>
                     <div className="flex space-x-4 mt-2">
-                      <Button 
-                        onClick={() => generateChapterContent()} 
+                      <Button
+                        onClick={() => generateChapterContent()}
                         loading={loading}
                       >
                         Generate Chapter {currentChapter + 1} Content + Review
                       </Button>
                       {completedChapters.length > 0 && (
-                        <Button 
+                        <Button
                           onClick={regenerateLastChapter}
                           variant="slim"
                         >
@@ -264,13 +233,13 @@ export default function AdminGenerateInterface() {
                       Review your chapters above. You can still regenerate the final chapter if needed.
                     </p>
                     <div className="flex space-x-4">
-                      <Button 
+                      <Button
                         onClick={finalizeBook}
                         className="bg-green-600 hover:bg-green-700"
                       >
                         ✅ Finalize Book
                       </Button>
-                      <Button 
+                      <Button
                         onClick={regenerateLastChapter}
                         variant="slim"
                       >
@@ -289,16 +258,16 @@ export default function AdminGenerateInterface() {
               {completedChapters.map((chapter, i) => (
                 <div key={i} className="border border-gray-600 p-4 rounded bg-gray-800">
                   <h4 className="font-bold text-white">
-                    Chapter {i + 1}: {chapter.chapterTitle} 
+                    Chapter {i + 1}: {chapter.chapterTitle}
                     {chapter.wasRevised && <span className="text-yellow-400 ml-2">(Revised)</span>}
                   </h4>
                   <p className="text-sm text-gray-300 mb-3">
-                    {chapter.wordCount} words | 
-                    Brand: {chapter.review?.brandConsistency}/5 | 
+                    {chapter.wordCount} words |
+                    Brand: {chapter.review?.brandConsistency}/5 |
                     Energy: {chapter.review?.energyLevel}/5 |
                     Variety: {chapter.review?.varietyScore}/5
                   </p>
-                  
+
                   {/* Revision indicator */}
                   {chapter.wasRevised && (
                     <div className="bg-yellow-900 p-2 rounded text-sm mb-3 border border-yellow-700">
@@ -307,7 +276,7 @@ export default function AdminGenerateInterface() {
                       </p>
                     </div>
                   )}
-                  
+
                   {/* Content preview */}
                   <details className="mb-3">
                     <summary className="cursor-pointer text-emerald-400 hover:text-emerald-300">
