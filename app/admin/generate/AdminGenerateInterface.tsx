@@ -45,6 +45,7 @@ export default function AdminGenerateInterface() {
   const [currentChapter, setCurrentChapter] = useState(0);
   const [completedChapters, setCompletedChapters] = useState<ChapterData[]>([]);
   const [bookCompleted, setBookCompleted] = useState(false);
+  const [bookId, setBookId] = useState<string>('');
 
   const generateTitle = async () => {
     setLoading(true);
@@ -118,6 +119,11 @@ export default function AdminGenerateInterface() {
         });
         const contentData: ContentResponse = await response.json();
 
+        console.log('=== CONTENT GENERATION RESPONSE ===');
+        console.log('Success:', contentData.success);
+        console.log('Content length:', contentData.content?.length);
+        console.log('First 200 chars:', contentData.content?.substring(0, 200));
+
         // Get review
         console.log('Getting review for generated content...');
         const reviewRes = await fetch('/api/generate/review', {
@@ -147,6 +153,15 @@ export default function AdminGenerateInterface() {
           varietyScore: reviewData.review?.varietyScore,
           requiresRevision: reviewData.review?.requiresRevision,
           reason: reviewData.review?.revisionReason
+        });
+
+        console.log('=== REVIEW RESPONSE ===');
+        console.log('Review data:', reviewData);
+        console.log('Requires revision?', reviewData.review?.requiresRevision);
+        console.log('Scores:', {
+          satire: reviewData.review?.satireScore,
+          variety: reviewData.review?.varietyScore,
+          absurdity: reviewData.review?.absurdityScore
         });
 
         // Check if revision is needed
@@ -217,6 +232,68 @@ export default function AdminGenerateInterface() {
           <Button onClick={generateTitle} loading={loading}>
             Generate Title & Subtitle
           </Button>
+
+          <div className="mt-8 p-4 bg-gray-800 rounded">
+            <h3 className="text-lg mb-2">Resume Previous Book</h3>
+            <input
+              type="text"
+              placeholder="Paste Book ID to resume"
+              value={bookId}
+              onChange={(e) => setBookId(e.target.value)}
+              className="p-2 bg-gray-700 text-white rounded w-full mb-2"
+            />
+            <Button
+              onClick={async () => {
+                if (!bookId) return;
+                setLoading(true);
+
+                try {
+                  // Create a simple API endpoint to fetch book data
+                  const response = await fetch(`/api/admin/book/${bookId}`);
+                  const data = await response.json();
+
+                  if (!data.success) {
+                    alert('Book not found');
+                    setLoading(false);
+                    return;
+                  }
+
+                  // Restore the book data
+                  setBookData({
+                    bookId: data.book.id,
+                    title: data.book.title,
+                    subtitle: data.book.subtitle,
+                    chapterTitles: data.book.chapters,
+                    rawResponse: ''
+                  });
+
+                  // Restore completed chapters
+                  setCompletedChapters(data.book.chapter_content || []);
+                  setCurrentChapter(data.book.chapter_content?.length || 0);
+
+                  // Check if book is actually complete
+                  const totalChapters = data.book.chapters?.length || 0;
+                  const completedCount = data.book.chapter_content?.length || 0;
+                  if (completedCount === totalChapters && totalChapters > 0) {
+                    setBookCompleted(true);
+                  }
+
+                    // Jump to content generation step
+                    setStep('content');
+
+                  } catch (error) {
+                    console.error('Error loading book:', error);
+                    alert('Failed to load book');
+                  }
+
+                  setLoading(false);
+                }}
+              variant="slim"
+              loading={loading}
+            >
+              Resume Book
+            </Button>
+          </div>
         </div>
       )}
 

@@ -20,7 +20,9 @@ REVISION TRIGGERS (requires revision if ANY are true):
 - More than 3 formulaic patterns detected
 - Reads like actual self-help (not satirical enough)
 
-Return ONLY this JSON structure:
+IMPORTANT: Be critical! Most first drafts should score 2-3 and need revision.
+
+Return ONLY this JSON structure (no markdown, no extra text):
 {
   "satireScore": 1-5,
   "varietyScore": 1-5,
@@ -53,20 +55,30 @@ export async function POST(request: NextRequest) {
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
     
-    // Parse JSON response
+    console.log('Raw review response:', text); // Debug log
+    
+    // More robust JSON extraction
     let review;
     try {
-      review = JSON.parse(text.trim());
+      // Try to find JSON in the response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        review = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON found in response');
+      }
     } catch (e) {
-      // Fallback if parsing fails
-      console.error('Failed to parse review:', text);
+      console.error('Failed to parse review:', e);
+      console.error('Raw text was:', text);
+      
+      // Return a review that forces revision on parse failure
       review = {
-        satireScore: 3,
-        varietyScore: 3,
-        absurdityScore: 3,
-        requiresRevision: false,
-        revisionReason: "Review parsing failed",
-        recommendations: [],
+        satireScore: 2,
+        varietyScore: 2,
+        absurdityScore: 2,
+        requiresRevision: true,
+        revisionReason: "Review parsing failed - regenerating to ensure quality",
+        recommendations: ["Ensure content is sufficiently satirical", "Add more variety to structure"],
         formulaicPatterns: [],
         bestLines: []
       };
@@ -79,6 +91,8 @@ export async function POST(request: NextRequest) {
         review.revisionReason = `Low scores - Satire: ${review.satireScore}/5, Variety: ${review.varietyScore}/5`;
       }
     }
+    
+    console.log('Final review:', review); // Debug log
     
     return Response.json({ 
       success: true, 

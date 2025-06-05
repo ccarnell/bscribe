@@ -66,7 +66,10 @@ STRUCTURAL VARIETY (MIX THESE UP):
 - Stream of consciousness
 - Complex topics that are made to seem simple or simple topics that are made to seem complex
 
-FORBIDDEN (you've used these already):
+FORBIDDEN PATTERNS TO AVOID(you've used these already):
+- Starting with "But..." or "Here's..." "Plot twist..." or similar transitions
+- Using 73% and 27% as your go-to statistics. Vary it up!
+- Repeating the same sub-themes across chapters
 {FORBIDDEN}
 
 Length: {WORDS} words (but let the content flow naturally)
@@ -78,40 +81,44 @@ export async function POST(request: NextRequest) {
   if (authResult instanceof Response) {
     return authResult;
   }
-  
+
   try {
-    const { 
-      bookId, 
-      chapterNumber, 
-      chapterTitle, 
-      previousChapters = [], 
+    const {
+      bookId,
+      chapterNumber,
+      chapterTitle,
+      previousChapters = [],
       isRevision = false,
       revisionGuidance = ''
     } = await request.json();
 
-    const { data: book } = await supabaseAdmin
+    // Fetch book data
+    const { data: book, error: bookError } = await supabaseAdmin
       .from('book_generations')
       .select('*')
       .eq('id', bookId)
       .single();
 
-    if (!book) throw new Error('Book not found');
+    if (bookError || !book) {
+      console.error('Book fetch error:', bookError);
+      throw new Error(`Book not found: ${bookId}`);
+    }
 
     // Get used patterns
     const { data: patterns } = await supabaseAdmin
       .from('pattern_tracking')
       .select('pattern_text')
       .eq('book_id', bookId);
-    
-    const forbiddenList = patterns?.map(p => p.pattern_text).join('\n- ') || 'Nothing yet - go wild!';
-    
+
+    const forbiddenList = patterns?.map((p: any) => p.pattern_text).join('\n- ') || 'Nothing yet - go wild!';
+
     // Build context from previous chapters (keep some for callbacks)
-    const recentContext = previousChapters.slice(-2).map((ch: any) => 
+    const recentContext = previousChapters.slice(-2).map((ch: any) =>
       `Previous chapter vibes: ${ch.substring(0, 200)}...`
     ).join('\n');
 
-    const wordTarget = chapterNumber === 1 ? 
-      `150-300` : 
+    const wordTarget = chapterNumber === 1 ?
+      `150-300` :
       `${200 + Math.floor(Math.random() * 300)}-${400 + Math.floor(Math.random() * 100)}`;
 
     let additionalGuidance = '';
@@ -119,61 +126,105 @@ export async function POST(request: NextRequest) {
       additionalGuidance = `\n\nREVISION REQUIRED:\n${revisionGuidance}\n\nMake this COMPLETELY DIFFERENT. New voice, new structure, new jokes.`;
     }
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      temperature: 0.9 + (chapterNumber * 0.02), // Start high, go higher
-      messages: [{
-        role: 'user',
-        content: CONTENT_AGENT_PROMPT
-          .replace('{TITLE}', book.title)
-          .replace('{CHAPTER}', `${chapterNumber}. ${chapterTitle}`)
-          .replace('{FORBIDDEN}', forbiddenList)
-          .replace('{WORDS}', wordTarget) +
-          `\n\nContext:\n${recentContext}` +
-          additionalGuidance
-      }]
-    });
+    // Generate content with retry Logic
+    let content = '';
+    let attempts = 0;
+    const maxAttempts = 3;
 
-    const content = response.content[0].type === 'text' ? response.content[0].text : '';
-    
-    // Save key patterns (but don't over-track)
-    const firstLines = content.split('\n').filter(l => l.trim()).slice(0, 3);
-    for (const line of firstLines) {
-      if (line.length > 20) {
-        await supabaseAdmin.from('pattern_tracking').insert({
-          book_id: bookId,
-          pattern_type: 'opening',
-          pattern_text: line.substring(0, 50),
-          chapter_number: chapterNumber
+    while (attempts < maxAttempts && !content) {
+      attempts++;
+      console.log(`Content generation attempt ${attempts} of ${maxAttempts}`);
+
+      try {
+        const response = await anthropic.messages.create({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          temperature: Math.min(0.99, 0.9 + (chapterNumber * 0.02)),
+          messages: [{
+            role: 'user',
+            content: CONTENT_AGENT_PROMPT
+              .replace('{TITLE}', book.title)
+              .replace('{CHAPTER}', `${chapterNumber}. ${chapterTitle}`)
+              .replace('{FORBIDDEN}', forbiddenList)
+              .replace('{WORDS}', wordTarget) +
+              `\n\nContext:\n${recentContext}` +
+              additionalGuidance
+          }]
         });
+
+        const textContent = response.content[0];
+        if (textContent.type === 'text') {
+          content = textContent.text;
+        }
+
+        if (!content || content.trim() === '') {
+          console.error(`Empty content on attempt ${attempts}`);
+          continue;
+        }
+
+        console.log(`Content generated successfully on attempt ${attempts}, length: ${content.length}`);
+        
+      } catch (apiError) {
+        console.error(`Anthropic API error on attempt ${attempts}:`, apiError);
+        if (attempts === maxAttempts) {
+          throw new Error(`Failed to generate content after ${maxAttempts} attempts: ${apiError}`);
+        }
+        // Wait a bit before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
 
+    if (!content) {
+      throw new Error('Failed to generate content - all attempts returned empty');
+    }
+
+    // Only save patterns if we have valid content
+    try {
+      const firstLines = content.split('\n').filter(l => l.trim()).slice(0, 3);
+      for (const line of firstLines) {
+        if (line.length > 20 && line.length < 200) {
+          await supabaseAdmin.from('pattern_tracking').insert({
+            book_id: bookId,
+            pattern_type: 'opening',
+            pattern_text: line.substring(0, 50),
+            chapter_number: chapterNumber
+          }).select(); // Don't fail if pattern tracking fails
+        }
+      }
+    } catch (patternError) {
+      console.error('Pattern tracking error:', patternError);
+      // Continue - don't fail the whole request
+    }
+
     // Update book record
-    const { data: currentBook } = await supabaseAdmin
-      .from('book_generations')
-      .select('chapter_content, revision_count')
-      .eq('id', bookId)
-      .single();
+    try {
+      const { data: currentBook } = await supabaseAdmin
+        .from('book_generations')
+        .select('chapter_content, revision_count')
+        .eq('id', bookId)
+        .single();
 
-    const chapterContent = currentBook?.chapter_content || [];
-    chapterContent[chapterNumber - 1] = {
-      chapterNumber,
-      chapterTitle,
-      content,
-      wordCount: content.split(' ').length,
-      generatedAt: new Date().toISOString(),
-      revision: isRevision ? (chapterContent[chapterNumber - 1]?.revision || 0) + 1 : 0
-    };
+      const chapterContent = currentBook?.chapter_content || [];
+      chapterContent[chapterNumber - 1] = {
+        chapterNumber,
+        chapterTitle,
+        content,
+        wordCount: content.split(' ').length,
+        generatedAt: new Date().toISOString(),
+        revision: isRevision ? (chapterContent[chapterNumber - 1]?.revision || 0) + 1 : 0
+      };
 
-    await supabaseAdmin
-      .from('book_generations')
-      .update({
-        chapter_content: chapterContent,
-        revision_count: isRevision ? (currentBook?.revision_count || 0) + 1 : (currentBook?.revision_count || 0)
-      })
-      .eq('id', bookId);
+      await supabaseAdmin
+        .from('book_generations')
+        .update({
+          chapter_content: chapterContent,
+          revision_count: isRevision ? (currentBook?.revision_count || 0) + 1 : (currentBook?.revision_count || 0)
+        })
+        .eq('id', bookId);
+    } catch (updateError) {
+      console.error('Book update error:', updateError);
+      // Continue - we have the content
+    }
 
     return Response.json({
       success: true,
@@ -188,7 +239,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Content generation error:', error);
     return Response.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to generate content' },
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to generate content',
+        details: error instanceof Error ? error.stack : String(error)
+      },
       { status: 500 }
     );
   }
