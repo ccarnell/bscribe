@@ -1,3 +1,4 @@
+// app/api/generate/review/route.ts
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { checkAdminAuth } from '@/utils/auth-helpers/api-auth';
@@ -6,21 +7,29 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
-const REVIEW_AGENT_PROMPT = `Review this satirical self-help chapter and decide if it needs revision.
+const REVIEW_AGENT_PROMPT = `You are a review agent for satirical self-help content. Evaluate this chapter and provide specific, actionable feedback.
 
-EVALUATION:
-1. Is it SATIRICALLY FUNNY? (Most important)
-2. Is it VARIED in structure?
-3. Is any real advice buried deep into absurdity?
-4. Are there repetitive patterns?
+SCORING CRITERIA:
+1. Satire Quality (1-5): Is it genuinely funny and self-aware?
+2. Structural Variety (1-5): Does it avoid formulaic patterns?
+3. Absurdity Balance (1-5): Is real advice properly buried in nonsense?
 
-Give scores 1-5 and return ONLY valid JSON:
+REVISION TRIGGERS (requires revision if ANY are true):
+- Satire Quality score ≤ 2
+- Structural Variety score ≤ 2
+- More than 3 formulaic patterns detected
+- Reads like actual self-help (not satirical enough)
+
+Return ONLY this JSON structure:
 {
-  "satireHumorScore": 1-5,
+  "satireScore": 1-5,
   "varietyScore": 1-5,
-  "helpAbsurdity": 1-5,
+  "absurdityScore": 1-5,
   "requiresRevision": true/false,
-  "reason": "why revision needed or why it's good"
+  "revisionReason": "specific reason if revision needed",
+  "recommendations": ["specific suggestion 1", "specific suggestion 2"],
+  "formulaicPatterns": ["pattern 1", "pattern 2"],
+  "bestLines": ["quotable line 1", "quotable line 2"]
 }`;
 
 export async function POST(request: NextRequest) {
@@ -44,32 +53,37 @@ export async function POST(request: NextRequest) {
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
     
-    // Extract JSON more reliably
-    const jsonMatch = text.match(/\{[^}]+\}/);
-    if (!jsonMatch) {
-      return Response.json({
-        success: true,
-        review: {
-          satireHumorScore: 3,
-          varietyScore: 3,
-          helpAbsurdity: 3,
-          requiresRevision: false,
-          reason: "Could not parse review"
-        }
-      });
+    // Parse JSON response
+    let review;
+    try {
+      review = JSON.parse(text.trim());
+    } catch (e) {
+      // Fallback if parsing fails
+      console.error('Failed to parse review:', text);
+      review = {
+        satireScore: 3,
+        varietyScore: 3,
+        absurdityScore: 3,
+        requiresRevision: false,
+        revisionReason: "Review parsing failed",
+        recommendations: [],
+        formulaicPatterns: [],
+        bestLines: []
+      };
     }
     
-    const review = JSON.parse(jsonMatch[0]);
-    
-    // Force revision if scores are too low
-    if (!review.requiresRevision) {
-      review.requiresRevision = review.humorScore <= 2 || review.varietyScore <= 2;
-      if (review.requiresRevision) {
-        review.reason = `Low scores: Humor ${review.humorScore}/5, Variety ${review.varietyScore}/5`;
+    // Enforce revision rules
+    if (review.satireScore <= 2 || review.varietyScore <= 2) {
+      review.requiresRevision = true;
+      if (!review.revisionReason) {
+        review.revisionReason = `Low scores - Satire: ${review.satireScore}/5, Variety: ${review.varietyScore}/5`;
       }
     }
     
-    return Response.json({ success: true, review });
+    return Response.json({ 
+      success: true, 
+      review
+    });
 
   } catch (error) {
     console.error('Review error:', error);

@@ -10,6 +10,7 @@ import { Analytics } from "@vercel/analytics/next"
 const featuredBooks = [
   {
     id: 1,
+    productID: 'prod_book_1',
     title: "The 7 F*cking Secrets of How to Hack the Art of Everything You Need to Know",
     price: 9.99,
     priceInCents: 999,
@@ -18,6 +19,7 @@ const featuredBooks = [
   },
   {
     id: 2,
+    productId: 'prod_book_2',
     title: "Think Like a Motherf*cking Navy SEAL CEO", 
     price: 12.99,
     priceInCents: 1299,
@@ -26,6 +28,7 @@ const featuredBooks = [
   },
   {
     id: 3,
+    productId: 'prod_book_3',
     title: "From Broke-Ass Loser to F*ckable Billionaire in 30 Minutes",
     price: 7.99,
     priceInCents: 799,
@@ -34,6 +37,7 @@ const featuredBooks = [
   },
   {
     id: 4,
+    productId: 'prod_book_4',
     title: "The 42-Parameter Deep Learning Framework for Optimizing Your Neural Pathways",
     price: 14.99,
     priceInCents: 1499,
@@ -42,6 +46,7 @@ const featuredBooks = [
   },
   {
     id: 5,
+    productId: 'prod_book_5',
     title: "Authentically Leveraging Your Personal Brand's F*cking Synergy",
     price: 11.99,
     priceInCents: 1199,
@@ -50,6 +55,7 @@ const featuredBooks = [
   },
   {
     id: 6,
+    productId: 'prod_book_6',
     title: "Zero-Shot Learning the Art of Maximum F*ckery",
     price: 8.99,
     priceInCents: 899,
@@ -68,12 +74,11 @@ export default function HomePage() {
       // Create checkout session
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json'},
         body: JSON.stringify({
           priceId: book.priceInCents,
           bookTitle: book.title,
+          productId: book.productId
         }),
       });
 

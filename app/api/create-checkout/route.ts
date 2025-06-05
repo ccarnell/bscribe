@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/utils/stripe/config';
 import { getURL } from '@/utils/helpers';
 
+// app/api/create-checkout/route.ts
 export async function POST(request: NextRequest) {
   try {
-    const { priceId, bookTitle } = await request.json();
+    const { priceId, bookTitle, productId } = await request.json();
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
             product_data: {
               name: bookTitle,
             },
-            unit_amount: priceId, // Price in cents
+            unit_amount: priceId,
           },
           quantity: 1,
         },
@@ -25,6 +26,7 @@ export async function POST(request: NextRequest) {
       cancel_url: getURL(),
       metadata: {
         bookTitle: bookTitle,
+        productId: productId // Add this
       },
     });
 

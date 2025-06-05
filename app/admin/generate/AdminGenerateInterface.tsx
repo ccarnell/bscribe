@@ -1,16 +1,50 @@
+// app/admin/generate/AdminGenerateInterface.tsx
 'use client';
 
 import { useState } from 'react';
 import Button from '@/components/ui/Button';
+
+interface ChapterData {
+  chapterNumber: number;
+  chapterTitle: string;
+  content: string;
+  wordCount: number;
+  review: any;
+  attempts: number;
+  wasRevised: boolean;
+}
+
+interface ContentResponse {
+  success: boolean;
+  bookId: string;
+  chapterNumber: number;
+  chapterTitle: string;
+  content: string;
+  wordCount: number;
+  revision?: boolean;
+}
+
+interface ReviewResponse {
+  success: boolean;
+  review: {
+    satireScore: number;
+    varietyScore: number;
+    absurdityScore: number;
+    requiresRevision: boolean;
+    revisionReason?: string;
+    recommendations: string[];
+    formulaicPatterns: string[];
+    bestLines: string[];
+  };
+}
 
 export default function AdminGenerateInterface() {
   const [step, setStep] = useState<'start' | 'title' | 'chapters' | 'content'>('start');
   const [bookData, setBookData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [currentChapter, setCurrentChapter] = useState(0);
-  const [completedChapters, setCompletedChapters] = useState<any[]>([]);
+  const [completedChapters, setCompletedChapters] = useState<ChapterData[]>([]);
   const [bookCompleted, setBookCompleted] = useState(false);
-  const [revisionCount, setRevisionCount] = useState(0);
 
   const generateTitle = async () => {
     setLoading(true);
@@ -55,14 +89,19 @@ export default function AdminGenerateInterface() {
     setCurrentChapter(0);
   };
 
+  // Then update the generateChapterContent function:
   const generateChapterContent = async () => {
     setLoading(true);
-    let attempts = 0;
     const maxAttempts = 2;
+    let attempts = 0;
+    let currentChapterData: ChapterData | null = null;
 
     while (attempts < maxAttempts) {
       try {
+        attempts++;
+
         // Generate content
+        console.log(`Generating chapter ${currentChapter + 1}, attempt ${attempts}`);
         const response = await fetch('/api/generate/content', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -71,13 +110,17 @@ export default function AdminGenerateInterface() {
             chapterNumber: currentChapter + 1,
             chapterTitle: bookData.chapterTitles[currentChapter],
             previousChapters: completedChapters.map(ch => ch.content),
-            isRevision: attempts > 0
+            isRevision: attempts > 1,
+            revisionGuidance: attempts > 1 && currentChapterData?.review?.recommendations
+              ? currentChapterData.review.recommendations.join('\n')
+              : ''
           })
         });
-        const contentData = await response.json();
+        const contentData: ContentResponse = await response.json();
 
         // Get review
-        const reviewResponse = await fetch('/api/generate/review', {
+        console.log('Getting review for generated content...');
+        const reviewRes = await fetch('/api/generate/review', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -85,32 +128,51 @@ export default function AdminGenerateInterface() {
             chapterTitle: contentData.chapterTitle
           })
         });
-        const reviewResult = await reviewResponse.json();
+        const reviewData: ReviewResponse = await reviewRes.json();
 
-        if (reviewResult.success && reviewResult.review.requiresRevision && attempts < maxAttempts - 1) {
-          console.log(`Revision needed: ${reviewResult.review.reason}`);
-          attempts++;
-          continue; // Try again
-        }
-
-        // Accept this version
-        const finalChapter = {
-          ...contentData,
-          review: reviewResult.review,
-          attempts: attempts + 1
+        // Store chapter data
+        currentChapterData = {
+          chapterNumber: currentChapter + 1,
+          chapterTitle: bookData.chapterTitles[currentChapter],
+          content: contentData.content,
+          wordCount: contentData.wordCount,
+          review: reviewData.review,
+          attempts: attempts,
+          wasRevised: attempts > 1
         };
 
-        setCompletedChapters([...completedChapters, finalChapter]);
+        // Log review results
+        console.log('Review Results:', {
+          satireScore: reviewData.review?.satireScore,
+          varietyScore: reviewData.review?.varietyScore,
+          requiresRevision: reviewData.review?.requiresRevision,
+          reason: reviewData.review?.revisionReason
+        });
 
-        if (currentChapter + 1 < bookData.chapterTitles.length) {
-          setCurrentChapter(currentChapter + 1);
+        // Check if revision is needed
+        if (reviewData.review?.requiresRevision && attempts < maxAttempts) {
+          console.log('🔄 REVISION TRIGGERED - Attempting regeneration...');
+          continue; // Try again
+        } else {
+          console.log('✅ CHAPTER ACCEPTED');
+          break;
         }
 
-        break;
-
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error generating chapter:', error);
         break;
+      }
+    }
+
+    if (currentChapterData) {
+      // Save completed chapter
+      setCompletedChapters([...completedChapters, currentChapterData]);
+
+      // Move to next chapter or finish
+      if (currentChapter + 1 < bookData.chapterTitles.length) {
+        setCurrentChapter(currentChapter + 1);
+      } else {
+        setBookCompleted(true);
       }
     }
 
@@ -118,15 +180,31 @@ export default function AdminGenerateInterface() {
   };
 
   const regenerateLastChapter = () => {
-    setCompletedChapters(completedChapters.slice(0, -1));
-    if (completedChapters.length < bookData.chapterTitles.length) {
-      setCurrentChapter(currentChapter - 1);
+    if (completedChapters.length > 0) {
+      setCompletedChapters(completedChapters.slice(0, -1));
+      setCurrentChapter(Math.max(0, currentChapter - 1));
+      setBookCompleted(false);
     }
-    setRevisionCount(0);
   };
 
-  const finalizeBook = () => {
-    setBookCompleted(true);
+  const exportBook = async () => {
+    const bookContent = {
+      title: bookData.title,
+      subtitle: bookData.subtitle,
+      chapters: completedChapters.map(ch => ({
+        title: ch.chapterTitle,
+        content: ch.content
+      }))
+    };
+
+    // Create a downloadable JSON file
+    const blob = new Blob([JSON.stringify(bookContent, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${bookData.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_export.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -148,7 +226,6 @@ export default function AdminGenerateInterface() {
           <div className="bg-gray-800 p-4 rounded border border-gray-600">
             <h3 className="text-lg font-bold text-white">{bookData.title}</h3>
             <p className="text-gray-300">{bookData.subtitle}</p>
-            {bookData.absurdity && <p className="text-sm mt-2 text-gray-300"><strong>Absurdity:</strong> {bookData.absurdity}</p>}
           </div>
           <div className="flex space-x-4">
             <Button onClick={approveTitle} loading={loading}>
@@ -166,6 +243,7 @@ export default function AdminGenerateInterface() {
           <h2 className="text-xl">Generated Chapters:</h2>
           <div className="bg-gray-800 p-4 rounded border border-gray-600">
             <h3 className="font-bold mb-2 text-white">{bookData.title}</h3>
+            <p className="text-gray-400 mb-3 italic">{bookData.subtitle}</p>
             <ol className="list-decimal pl-6 space-y-1">
               {bookData.chapterTitles.map((chapter: string, i: number) => (
                 <li key={i} className="text-sm text-gray-300">{chapter}</li>
@@ -189,93 +267,41 @@ export default function AdminGenerateInterface() {
 
           <div className="bg-blue-900 p-4 rounded border border-blue-700">
             <p className="text-blue-100"><strong>Book:</strong> {bookData.title}</p>
-            <p className="text-blue-100"><strong>Progress:</strong> {completedChapters.length} / {bookData.chapterTitles.length} chapters completed</p>
+            <p className="text-blue-100 italic text-sm">{bookData.subtitle}</p>
+            <p className="text-blue-100 mt-2">
+              <strong>Progress:</strong> {completedChapters.length} / {bookData.chapterTitles.length} chapters completed
+            </p>
           </div>
 
-          {(() => {
-            const isLastChapter = currentChapter + 1 === bookData.chapterTitles.length;
-            const allChaptersGenerated = completedChapters.length === bookData.chapterTitles.length;
-            const canGenerateNext = currentChapter < bookData.chapterTitles.length && !bookCompleted;
-
-            return (
-              <>
-                {canGenerateNext && (
-                  <div className="bg-gray-800 p-4 rounded border border-gray-600">
-                    <h3 className="font-bold mb-2 text-white">
-                      {isLastChapter ? 'Final Chapter' : `Next: Chapter ${currentChapter + 1}`}
-                    </h3>
-                    <p className="text-gray-300">{bookData.chapterTitles[currentChapter]}</p>
-                    <div className="flex space-x-4 mt-2">
-                      <Button
-                        onClick={() => generateChapterContent()}
-                        loading={loading}
-                      >
-                        Generate Chapter {currentChapter + 1} Content + Review
-                      </Button>
-                      {completedChapters.length > 0 && (
-                        <Button
-                          onClick={regenerateLastChapter}
-                          variant="slim"
-                        >
-                          🔄 Regenerate Last Chapter
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {allChaptersGenerated && !bookCompleted && (
-                  <div className="bg-yellow-900 p-4 rounded border border-yellow-700">
-                    <h3 className="text-lg font-bold text-yellow-200 mb-2">
-                      📝 All Chapters Generated!
-                    </h3>
-                    <p className="text-yellow-100 mb-4">
-                      Review your chapters above. You can still regenerate the final chapter if needed.
-                    </p>
-                    <div className="flex space-x-4">
-                      <Button
-                        onClick={finalizeBook}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        ✅ Finalize Book
-                      </Button>
-                      <Button
-                        onClick={regenerateLastChapter}
-                        variant="slim"
-                      >
-                        🔄 Regenerate Final Chapter
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
-            );
-          })()}
+          {!bookCompleted && currentChapter < bookData.chapterTitles.length && (
+            <div className="bg-gray-800 p-4 rounded border border-gray-600">
+              <h3 className="font-bold mb-2 text-white">
+                Next: Chapter {currentChapter + 1}
+              </h3>
+              <p className="text-gray-300">{bookData.chapterTitles[currentChapter]}</p>
+              <Button
+                onClick={generateChapterContent}
+                loading={loading}
+                className="mt-3"
+              >
+                Generate Chapter Content
+              </Button>
+            </div>
+          )}
 
           {completedChapters.length > 0 && (
             <div className="space-y-4">
               <h3 className="text-lg font-bold">Completed Chapters:</h3>
               {completedChapters.map((chapter, i) => (
                 <div key={i} className="border border-gray-600 p-4 rounded bg-gray-800">
-                  <h4 className="font-bold text-white">
-                    Chapter {i + 1}: {chapter.chapterTitle}
-                    {chapter.wasRevised && <span className="text-yellow-400 ml-2">(Revised)</span>}
+                  <h4 className="font-bold text-white mb-2">
+                    Chapter {chapter.chapterNumber}: {chapter.chapterTitle}
                   </h4>
-                  <p className="text-sm text-gray-300 mb-3">
+                  <div className="text-sm text-gray-300 mb-3">
                     {chapter.wordCount} words |
-                    Brand: {chapter.review?.brandConsistency}/5 |
-                    Energy: {chapter.review?.energyLevel}/5 |
-                    Variety: {chapter.review?.varietyScore}/5
-                  </p>
-
-                  {/* Revision indicator */}
-                  {chapter.wasRevised && (
-                    <div className="bg-yellow-900 p-2 rounded text-sm mb-3 border border-yellow-700">
-                      <p className="text-yellow-200">
-                        🔄 This chapter was automatically revised due to: {chapter.originalReview.revisionReason}
-                      </p>
-                    </div>
-                  )}
+                    {chapter.wasRevised && <span className="text-yellow-400 ml-2">📝 Revised ({chapter.attempts} attempts)</span>}
+                    {!chapter.wasRevised && <span className="text-green-400 ml-2">✅ First draft accepted</span>}
+                  </div>
 
                   {/* Content preview */}
                   <details className="mb-3">
@@ -283,30 +309,42 @@ export default function AdminGenerateInterface() {
                       View Chapter Content
                     </summary>
                     <div className="bg-gray-900 p-4 rounded text-sm text-gray-200 mt-2 border border-gray-700">
-                      <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>{chapter.content}</div>
+                      <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{chapter.content}</div>
                     </div>
                   </details>
 
-                  {/* Review */}
+                  {/* Review details */}
                   {chapter.review && (
                     <div className="bg-blue-900 p-4 rounded text-sm border border-blue-700">
-                      <h5 className="font-semibold mb-3 text-blue-200">Review Analysis:</h5>
-                      <div className="text-blue-100 space-y-2">
-                        <p><strong>Assessment:</strong> {chapter.review.brandComment}</p>
-                        {chapter.review.formulaicFlags?.length > 0 && (
-                          <p><strong>Patterns Detected:</strong> {chapter.review.formulaicFlags.join(', ')}</p>
-                        )}
-                        {chapter.review.screenshotMoments && chapter.review.screenshotMoments.length > 0 && (
-                          <div className="mt-3">
-                            <strong className="text-green-300">🔥 Best Lines:</strong>
-                            <ul className="text-sm text-green-100 mt-1">
-                              {chapter.review.screenshotMoments.slice(0, 2).map((moment: string, j: number) => (
-                                <li key={j} className="italic">"{moment}"</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                      <h5 className="font-semibold mb-2 text-blue-200">Review Analysis:</h5>
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div className="text-blue-100">
+                          <strong>Satire:</strong> {chapter.review.satireScore}/5
+                        </div>
+                        <div className="text-blue-100">
+                          <strong>Variety:</strong> {chapter.review.varietyScore}/5
+                        </div>
+                        <div className="text-blue-100">
+                          <strong>Absurdity:</strong> {chapter.review.absurdityScore}/5
+                        </div>
                       </div>
+
+                      {chapter.wasRevised && (
+                        <p className="text-yellow-300 mb-2">
+                          <strong>Revision Reason:</strong> {chapter.review.revisionReason}
+                        </p>
+                      )}
+
+                      {chapter.review.bestLines && chapter.review.bestLines.length > 0 && (
+                        <div className="mt-3">
+                          <strong className="text-green-300">🔥 Best Lines:</strong>
+                          <ul className="text-sm text-green-100 mt-1 space-y-1">
+                            {chapter.review.bestLines.map((line: string, j: number) => (
+                              <li key={j} className="italic">"{line}"</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -315,14 +353,34 @@ export default function AdminGenerateInterface() {
           )}
 
           {bookCompleted && (
-            <div className="bg-green-900 p-4 rounded border border-green-700">
-              <h3 className="text-lg font-bold text-green-200">
+            <div className="bg-green-900 p-6 rounded border border-green-700">
+              <h3 className="text-xl font-bold text-green-200 mb-3">
                 🎉 Book Complete!
               </h3>
-              <p className="text-green-100">All {bookData.chapterTitles.length} chapters generated successfully.</p>
-              <p className="text-green-100"><strong>Total Words:</strong> {completedChapters.reduce((sum, ch) => sum + ch.wordCount, 0)}</p>
-              <p className="text-green-100"><strong>Chapters Revised:</strong> {completedChapters.filter(ch => ch.wasRevised).length}</p>
+              <div className="text-green-100 space-y-2">
+                <p><strong>Title:</strong> {bookData.title}</p>
+                <p><strong>Subtitle:</strong> {bookData.subtitle}</p>
+                <p><strong>Chapters:</strong> {bookData.chapterTitles.length}</p>
+                <p><strong>Total Words:</strong> {completedChapters.reduce((sum, ch) => sum + ch.wordCount, 0).toLocaleString()}</p>
+                <p><strong>Chapters Revised:</strong> {completedChapters.filter(ch => ch.wasRevised).length}</p>
+                <p><strong>Total Generation Attempts:</strong> {completedChapters.reduce((sum, ch) => sum + ch.attempts, 0)}</p>
+              </div>
+
+              <div className="flex space-x-4 mt-4">
+                <Button onClick={exportBook} className="bg-blue-600 hover:bg-blue-700">
+                  📥 Export Book Data
+                </Button>
+                <Button onClick={() => window.location.reload()} variant="slim">
+                  📚 Generate Another Book
+                </Button>
+              </div>
             </div>
+          )}
+
+          {completedChapters.length > 0 && !bookCompleted && (
+            <Button onClick={regenerateLastChapter} variant="slim" className="mt-4">
+              🔄 Regenerate Last Chapter
+            </Button>
           )}
         </div>
       )}
