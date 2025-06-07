@@ -28,7 +28,8 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <span className="text-gray-400">
-                  No link. Literally just scroll up.
+                  No "Back to Top" link.
+                  <br />Literally just scroll up.
                 </span>
               </li>
             </ul>
@@ -81,7 +82,7 @@ export default function Footer() {
         {/* Copyright */}
         <div className="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-gray-800">
           <span className="text-gray-400">
-            &copy; 2024 BScribe.ai - Powered by your mother
+            &copy; [Year], Placeholder Footer Text
           </span>
           <div className="flex items-center space-x-4 mt-3 sm:mt-0">
             <a

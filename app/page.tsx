@@ -138,9 +138,9 @@ export default function HomePage() {
           
           {/* Subheadline */}
           <p className="text-xl md:text-2xl mb-12 text-gray-300 max-w-4xl mx-auto">
-            I've been unemployed for months.
+            Listen, I've been unemployed for months.
             <br />
-            <br />This is your chance to help me so that I can help you to help yourself by helping others to help me too. And just maybe, that will help them to help others who do the same.
+            <br />This is your chance to help me so that I can help you to help yourself by helping others to help me too. And maybe, just maybe, that will help them to help others who do the same.
           </p>
 
           {/* Featured Books Grid */}
@@ -208,34 +208,33 @@ export default function HomePage() {
           
           <div className="text-lg md:text-xl space-y-6 text-gray-300">
             <p>
-              You found BScribe because you thought you saw a funny title. 
+              You found yourself here after seeing a ridiculous title or quote. 
               But now you realize you've just landed on an absolute gold mine.
             </p>
             
             <p>
-              We both know you could probably put your meta-prompt engineering 
-              genius to work and vibe code this yourself in the next 2 hours. 
-              But I already did all the work for you.
+              We both know you could put your meta-prompt engineering 
+              genius to work and vibe code this yourself in 2 hours. 
+              Fortunately, I already wasted your time for you.
             </p>
             
             <div className="flex justify-center">
               <Link 
                 href="/#books" 
-                className="bg-emerald-500 hover:bg-emerald-600 text-black px-4 py-2 rounded-lg font-bold text-sm transition-all transform hover:scale-105"
+                className="bg-emerald-500 hover:bg-emerald-600 text-black px-10 py-3 rounded-lg font-bold text-sm transition-all transform hover:scale-105"
               >
                 Buy the BS
               </Link>
           </div>
 
             <p>  
-              I could probably make more money selling courses to people on how to do this too. But I'm not.
-              So, I'm kindly asking you to just give me your money so you can enjoy the life you deserve
+              The neurotypicals probably make more money selling courses on how to do this.
+              <br />But I'm not.
             </p>
             
             <p>
-              <strong>The deal:</strong> You give me money, I give you a PDF that will make you laugh for 5 minutes, 
-              then you'll forget about it forever. It's like buying a coffee, except the coffee is existential 
-              dread with Comic Sans formatting.
+              <strong>THE DEAL:</strong> You pay. I give you life-changing content (admittedly for better or worse).
+              <br />Did Starbucks try this hard for your coin?
             </p>
           </div>
         </div>
@@ -251,7 +250,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-indigo-800 p-6 rounded-lg">
               <p className="text-white mb-4">
-                "You know when you're deep in a book and after a few pages you sort've "wake up" and realize you have no clue what you've been reading? That's what BScribe can offer you."
+                "You know when you're deep in a book and after a few pages you sort've "wake up" and realize you have no clue what you've been reading? That's what BScribe did for me."
               </p>
               <p className="text-emerald-500 font-bold">- Sarah K., Professional Overthinker</p>
             </div>
@@ -274,7 +273,7 @@ export default function HomePage() {
           {/* Fake counter */}
           <div className="text-center mt-12">
             <p className="text-gray-400">
-              <span className="text-emerald-500 font-bold text-2xl">8+ BILLION</span> people haven't taken this opportunity yet! 
+              <span className="text-emerald-500 font-bold text-2xl">8+ BILLION </span> people haven't taken this opportunity yet! 
             </p>
           </div>
         </div>
@@ -284,11 +283,12 @@ export default function HomePage() {
       <section className="py-20 px-4" style={{backgroundColor: '#ff0000'}}>
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-8">
-            Stop Overthinking It
+            STOP OVERTHINKING
           </h2>
           
           <p className="text-xl mb-8 text-white">
-            This obnoxious red section is your wakeup call. Cancel your forgotten meditation app subs. Put that money to something you'll actually use.
+            Obnoxious red section? Your wakeup call.
+            <br />Cancel just 1 of your forgotten 12 subscriptions and buy this BS instead.
           </p>
           
           <Button
