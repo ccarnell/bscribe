@@ -94,7 +94,6 @@ const paidBook = {
 export default function HomePage() {
   const [loading, setLoading] = useState<string | null>(null);
   const [selectedPriceId, setSelectedPriceId] = useState<string>('price_3');
-  const [showTooltip, setShowTooltip] = useState<boolean>(false);
 
   // Get selected price tier for paid book
   const getSelectedPrice = () => {
@@ -177,7 +176,7 @@ export default function HomePage() {
     }
   };
 
-  const handleBuyBundle = async () => {
+  const handleBuyBundle = async (priceInCents = 1337) => {
     setLoading('bundle');
     
     try {
@@ -187,8 +186,8 @@ export default function HomePage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          priceId: 3999, // $39.99 in cents
-          bookTitle: 'Complete Bullsh*t Bundle - All 6 Books',
+          priceId: priceInCents, // in cents
+          bookTitle: 'Complete Bullsh*t Bundle - All Books',
         }),
       });
 
@@ -206,17 +205,16 @@ export default function HomePage() {
   // Star rating component
   const StarRating = () => (
     <div className="flex flex-col">
-      <div className="flex items-center text-left">
+      <div className="flex items-center text-left flex-wrap">
         <div className="flex space-x-1">
           {[1, 2, 3, 4, 5].map((star) => (
-            <svg key={star} className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg key={star} className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
             </svg>
           ))}
         </div>
-        <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">0 Ratings. They are just a social construct anyway.</span>
+        <span className="text-xs text-gray-300 ml-2 break-words md:whitespace-nowrap">(0) Ratings are just a social construct anyway.</span>
       </div>
-      <p className="text-xs text-gray-500 mt-1 text-left">10 pages</p>
     </div>
   );
 
@@ -231,6 +229,7 @@ export default function HomePage() {
             <span className="text-emerald-500">7 Months</span>
             <br />
             Building This So{' '}
+            <br />
             <span className="text-emerald-500">You Don't</span>
             <Analytics />
           </h1>
@@ -243,14 +242,16 @@ export default function HomePage() {
           </p>
           
           {/* Two Column Book Layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 md:max-w-5xl mx-auto">
             {/* Left Column - Free Book */}
             <div 
-              className="bg-[#1a1a1a] rounded-lg p-6 hover:shadow-lg transition-all duration-300 flex flex-col h-full"
-            >
-              <h2 className="text-lg font-bold mb-2 line-clamp-1 text-left">
+              onClick={handleDownloadFreeBook}
+              className="bg-[#1a1a1a] rounded-lg p-6 md:p-4 hover:shadow-lg transition-all duration-300 flex flex-col h-full cursor-pointer">
+              <h2 className="text-lg font-bold mb-1 line-clamp-1 text-left">
                 {freeBook.title}
               </h2>
+              
+              <p className="text-xs text-gray-400 mb-2 text-left">10 Pages | Free ebook | Adult coloring</p>
               
               <div className="flex justify-center mb-3">
                 <Image 
@@ -258,7 +259,7 @@ export default function HomePage() {
                   alt={freeBook.title}
                   width={300}
                   height={450}
-                  className="rounded-md shadow-lg max-w-full h-auto"
+                  className="rounded-md shadow-lg max-w-full h-auto md:w-[90%] md:mx-auto"
                   priority
                 />
               </div>
@@ -267,20 +268,33 @@ export default function HomePage() {
               
               <div className="mt-2 mb-1 text-left">
                 <span className="line-through text-red-500 text-lg font-bold">$0.01</span>
+                <div className="mt-1">
+                  <span className="bg-emerald-500 text-black px-2 py-0.5 rounded-md font-bold inline-block transform -rotate-3 relative border-2 border-dashed border-yellow-400 shadow-lg text-xs">
+                    <span className="absolute top-0 right-0 text-[10px] bg-yellow-400 text-black px-0.5 py-px rounded-bl-md transform translate-x-1 -translate-y-1 font-black">DEAL</span>
+                    100% OFF
+                  </span>
+                </div>
               </div>
               
-              <div className="mb-2">
-                <span className="bg-emerald-500 text-black px-3 py-1 rounded-md font-bold inline-block transform -rotate-3 relative border-2 border-dashed border-yellow-400 shadow-lg text-sm">
-                  <span className="absolute top-0 right-0 text-xs bg-yellow-400 text-black px-1 py-0.5 rounded-bl-md transform translate-x-1 -translate-y-1 font-black">DEAL</span>
-                  100% OFF
-                </span>
+              <div className="flex-1"></div>
+              
+              <div className="grid grid-cols-3 gap-3 mb-2 mt-3">
+                <div className="flex flex-col items-center">
+                  <button
+                    className="w-full flex items-center justify-center py-1 px-1 text-sm rounded bg-emerald-500 text-black font-bold h-10 mb-1"
+                  >
+                    $0.00
+                  </button>
+                  <span className="text-xs text-gray-400">Free</span>
+                </div>
+                <div className="col-span-2"></div>
               </div>
               
               <div className="mt-auto">
                 <Button
                   variant="flat"
-                  className="font-bold px-4 py-2 disabled:opacity-50 w-full text-md shadow-lg hover:scale-105 transition-all"
-                  onClick={handleDownloadFreeBook}
+                  className="font-bold px-4 py-2 disabled:opacity-50 w-full text-lg shadow-lg hover:scale-105 transition-all"
+                  onClick={() => handleDownloadFreeBook()}
                   disabled={loading === 'free'}
                 >
                   {loading === 'free' ? 'Loading...' : 'Just take it'}
@@ -289,10 +303,12 @@ export default function HomePage() {
             </div>
             
             {/* Right Column - Paid Book */}
-            <div className="bg-[#1a1a1a] rounded-lg p-6 hover:shadow-lg transition-all duration-300 flex flex-col h-full">
-              <h2 className="text-lg font-bold mb-2 line-clamp-1 text-left">
+            <div className="bg-[#1a1a1a] rounded-lg p-6 md:p-4 hover:shadow-lg transition-all duration-300 flex flex-col h-full">
+              <h2 className="text-lg font-bold mb-1 line-clamp-1 text-left">
                 {paidBook.title}
               </h2>
+              
+              <p className="text-xs text-gray-400 mb-2 text-left">10 Pages | Premium ebook</p>
               
               <div className="flex justify-center mb-3">
                 <Image 
@@ -300,7 +316,7 @@ export default function HomePage() {
                   alt={paidBook.title}
                   width={300}
                   height={450}
-                  className="rounded-md shadow-lg max-w-full h-auto"
+                  className="rounded-md shadow-lg max-w-full h-auto md:w-[90%] md:mx-auto"
                   priority
                 />
               </div>
@@ -309,78 +325,104 @@ export default function HomePage() {
               
               <div className="mt-2 mb-1 text-left">
                 <span className="line-through text-red-500 text-lg font-bold">${paidBook.originalPrice.toFixed(2)}</span>
+                <p className="text-xs text-gray-400 mt-1">
+                  Someone mentioned A/B testing... 'price elasticity' (whatever that means). Same product, choose your price.
+                </p>
               </div>
               
-              <p className="text-xs text-gray-400 mb-2">
-                Choose whichever number speaks to your inner entrepreneur.
-              </p>
-              
-              <div className="mb-2">
-                <div className="grid grid-cols-3 gap-1 mb-1">
-                  {paidBook.priceTiers.slice(0, 3).map((tier) => (
-                    <div key={tier.id} className="h-8 flex items-stretch">
-                      <button
-                        className={`w-full flex items-center justify-center py-1 px-1 text-xs rounded ${
-                          selectedPriceId === tier.id
-                            ? 'bg-emerald-500 text-black font-bold'
-                            : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
-                        }`}
-                        onClick={() => setSelectedPriceId(tier.id)}
-                      >
-                        {tier.label}
-                      </button>
-                    </div>
-                  ))}
+              <div className="grid grid-cols-3 gap-3 mb-2 mt-3">
+                <div className="flex flex-col items-center">
+                  <button
+                    className={`w-full flex items-center justify-center py-1 px-1 text-sm rounded mb-1 h-10 ${
+                      selectedPriceId === 'price_1'
+                        ? 'bg-emerald-500 text-black font-bold'
+                        : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
+                    }`}
+                    onClick={() => setSelectedPriceId('price_1')}
+                  >
+                    $4.20
+                  </button>
+                  <span className="text-xs text-gray-400">Dank</span>
                 </div>
-                <div className="grid grid-cols-2 gap-1">
-                  {paidBook.priceTiers.slice(3, 4).map((tier) => (
-                    <div key={tier.id} className="h-8 flex items-stretch">
-                      <button
-                        className={`w-full flex items-center justify-center py-1 px-1 text-xs rounded ${
-                          selectedPriceId === tier.id
-                            ? 'bg-emerald-500 text-black font-bold'
-                            : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
-                        }`}
-                        onClick={() => setSelectedPriceId(tier.id)}
-                      >
-                        {tier.label}
-                      </button>
-                    </div>
-                  ))}
-                  {paidBook.priceTiers.slice(4, 5).map((tier) => (
-                    <div key={tier.id} className="h-8 flex items-stretch">
-                      <button
-                        className={`w-full flex items-center justify-center py-1 px-1 text-xs rounded relative ${
-                          selectedPriceId === tier.id
-                            ? 'bg-emerald-500 text-black font-bold'
-                            : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
-                        }`}
-                        onClick={() => setSelectedPriceId(tier.id)}
-                        onMouseEnter={() => setShowTooltip(true)}
-                        onMouseLeave={() => setShowTooltip(false)}
-                      >
-                        {tier.label}
-                        {showTooltip && (
-                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-black text-white p-2 rounded text-xs w-64 mb-2 shadow-lg z-10">
-                            {tier.tooltip}
-                          </div>
-                        )}
-                      </button>
-                    </div>
-                  ))}
+                
+                <div className="flex flex-col items-center">
+                  <button
+                    className={`w-full flex items-center justify-center py-1 px-1 text-sm rounded mb-1 h-10 ${
+                      selectedPriceId === 'price_2'
+                        ? 'bg-emerald-500 text-black font-bold'
+                        : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
+                    }`}
+                    onClick={() => setSelectedPriceId('price_2')}
+                  >
+                    $6.66
+                  </button>
+                  <span className="text-xs text-gray-400">Ohh, edgy</span>
+                </div>
+                
+                <div className="flex flex-col items-center">
+                  <button
+                    className={`w-full flex items-center justify-center py-1 px-1 text-sm rounded mb-1 h-10 ${
+                      selectedPriceId === 'price_3'
+                        ? 'bg-emerald-500 text-black font-bold'
+                        : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
+                    }`}
+                    onClick={() => setSelectedPriceId('price_3')}
+                  >
+                    $9.11
+                  </button>
+                  <span className="text-xs text-gray-400">Never forget</span>
                 </div>
               </div>
               
               <div className="mt-auto">
                 <Button
                   variant="orange"
-                  className="font-bold px-4 py-2 disabled:opacity-50 w-full text-md shadow-lg hover:scale-105 transition-all"
-                  onClick={handleBuyPaidBook}
+                  className="font-bold px-4 py-2 disabled:opacity-50 w-full text-lg shadow-lg hover:scale-105 transition-all"
+                  onClick={() => handleBuyPaidBook()}
                   disabled={loading === 'paid'}
                 >
                   {loading === 'paid' ? 'Loading...' : 'Buy this BS'}
                 </Button>
               </div>
+            </div>
+          </div>
+          
+          {/* Bundle Offering */}
+          <div className="mt-8 text-center md:max-w-lg mx-auto">
+            <h3 className="text-xl font-bold mb-4">One less click for conversion rate optimizers</h3>
+            
+            <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto mb-2">
+              <div className="flex flex-col items-center">
+                <button
+                  className="w-full flex items-center justify-center py-1 px-1 text-sm rounded bg-[#2d2d2d] text-white hover:bg-[#ff6b35] mb-1 h-10"
+                  onClick={() => handleBuyBundle(1337)}
+                >
+                  $13.37
+                </button>
+                <span className="text-xs text-gray-400">Only for the Elite</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <button
+                  className="w-full flex items-center justify-center py-1 px-1 text-sm rounded bg-[#2d2d2d] text-white hover:bg-[#ff6b35] mb-1 h-10"
+                  onClick={() => handleBuyBundle(9001)}
+                >
+                  $90.01<sup>*</sup>
+                </button>
+                <span className="text-xs text-gray-400">Because you can</span>
+              </div>
+            </div>
+            
+            <Button
+              variant="orange"
+              className="font-bold px-4 py-2 mx-auto max-w-xs w-full text-lg shadow-lg hover:scale-105 transition-all"
+              onClick={() => handleBuyBundle()}
+              disabled={loading === 'bundle'}
+            >
+              {loading === 'bundle' ? 'Loading...' : 'Bundle this BS'}
+            </Button>
+            
+            <div className="text-[13px] text-emerald-500 font-medium mt-2 max-w-xs mx-auto text-center">
+              <p><sup>*</sup> 💚 If you seriously select <span className="font-bold">$90.00</span>, then <span className="font-bold">$21.01</span> will be donated to National Suicide Prevention Lifeline</p>
             </div>
           </div>
         </div>
@@ -447,7 +489,7 @@ export default function HomePage() {
               <Button
                 variant="orange"
                 className="font-bold px-8 py-3 rounded-lg text-lg w-full shadow-lg transform hover:scale-105 transition-all"
-                onClick={handleBuyBundle}
+                onClick={() => handleBuyBundle()}
               >
                 Buy their BS
               </Button>
@@ -473,7 +515,7 @@ export default function HomePage() {
             <Button
               variant="orange"
               className="font-bold px-10 py-4 rounded-lg text-xl shadow-lg transform hover:scale-105 transition-all"
-              onClick={handleBuyBundle}
+              onClick={() => handleBuyBundle()}
             >
               Buy their BS
             </Button>
@@ -496,20 +538,19 @@ export default function HomePage() {
           </h2>
           
           <p className="text-xl mb-8 text-white">
-            Obnoxious red section? Your wakeup call.
-            <br />Cancel just 1 of your forgotten 12 subscriptions and buy this BS instead.
+            Cancel one of your 12 forgotten subscriptions and buy this BS instead.
           </p>
           
           <Button
             variant="flat"
-            className="font-bold text-xl px-10 py-4 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 w-full sm:w-auto"
-            onClick={handleBuyBundle}
+            className="font-bold text-2xl px-10 py-4 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 w-full sm:w-auto"
+            onClick={() => handleBuyBundle()}
             disabled={loading === 'bundle'}
           >
             {loading === 'bundle' ? 'Loading...' : 'BUY THE BS'}
           </Button>
           
-          <p className="text-sm text-black mt-4">
+          <p className="text-sm mt-4" style={{ color: 'rgba(0, 0, 0, 0.6)' }}>
             No refunds. We don't want it back.
           </p>
         </div>
