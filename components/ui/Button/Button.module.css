@@ -22,6 +22,14 @@
   @apply py-2 transform-none normal-case;
 }
 
+.orange {
+  @apply bg-[#ff6b35] text-white;
+}
+
+.orange:hover {
+  @apply bg-[#ff8c42] text-white border-transparent;
+}
+
 .disabled,
 .disabled:hover {
   @apply text-zinc-400 border-zinc-600 bg-zinc-700 cursor-not-allowed;

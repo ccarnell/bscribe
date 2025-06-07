@@ -7,6 +7,13 @@ export async function POST(request: NextRequest) {
   try {
     const { priceId, bookTitle, productId } = await request.json();
 
+    // Validate price - ensure it's one of our expected price points
+    const validPrices = [420, 666, 911, 1337, 9001, 999, 1299, 799, 1499, 1199, 899, 3999];
+    const unitAmount = typeof priceId === 'number' && validPrices.includes(priceId)
+      ? priceId
+      : 699; // Default to lowest price if invalid
+
+    // Create session with validated price
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -16,7 +23,7 @@ export async function POST(request: NextRequest) {
             product_data: {
               name: bookTitle,
             },
-            unit_amount: priceId,
+            unit_amount: unitAmount,
           },
           quantity: 1,
         },
@@ -26,7 +33,8 @@ export async function POST(request: NextRequest) {
       cancel_url: getURL(),
       metadata: {
         bookTitle: bookTitle,
-        productId: productId // Add this
+        productId: productId,
+        originalPrice: unitAmount.toString(), // Track which price was selected
       },
     });
 

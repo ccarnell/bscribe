@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 import Button from '@/components/ui/Button';
 import { getStripe } from '@/utils/stripe/client';
 import { Analytics } from "@vercel/analytics/next"
 
-// Book data with prices in cents
+// Featured books data
 const featuredBooks = [
   {
     id: 1,
@@ -64,8 +65,89 @@ const featuredBooks = [
   }
 ];
 
+// Hero section featured books
+const freeBook = {
+  id: 'free-book-1',
+  productId: 'prod_free_book_1',
+  title: "I Disrupted My Own Childhood Trauma using Agile Methodology",
+  subtitle: "How I pivoted my inner child into a high-performing stakeholder and achieved synergistic healing at scale",
+  coverUrl: "/i-disrupted-my-own-childhood-trauma-book-cover-image.png",
+  isFree: true
+};
+
+const paidBook = {
+  id: 'paid-book-1',
+  productId: 'prod_paid_book_1',
+  title: "The Millionaire Mindset For People Who Can't Afford Avocado Toast",
+  subtitle: "Visualize Your Way to Wealth While Ignoring Basic Economics and Your Credit Card",
+  coverUrl: "/the-millionare-mindset-book-cover-image.png",
+  originalPrice: 69.00,
+  priceTiers: [
+    { id: 'price_1', label: '$4.20', priceInCents: 420 },
+    { id: 'price_2', label: '$6.66', priceInCents: 666 },
+    { id: 'price_3', label: '$9.11', priceInCents: 911 },
+    { id: 'price_4', label: '$13.37', priceInCents: 1337 },
+    { id: 'price_5', label: '$90.01', priceInCents: 9001, tooltip: "Any amount paid over $69.00 will be donated to the National Suicide Prevention Lifeline" }
+  ]
+};
+
 export default function HomePage() {
-  const [loading, setLoading] = useState<number | null>(null);
+  const [loading, setLoading] = useState<string | null>(null);
+  const [selectedPriceId, setSelectedPriceId] = useState<string>('price_3');
+  const [showTooltip, setShowTooltip] = useState<boolean>(false);
+
+  // Get selected price tier for paid book
+  const getSelectedPrice = () => {
+    const selected = paidBook.priceTiers.find(tier => tier.id === selectedPriceId);
+    return selected || paidBook.priceTiers[0];
+  };
+
+  const handleDownloadFreeBook = async () => {
+    // Implement free download logic here
+    setLoading('free');
+    try {
+      // Simulate download delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // For now, we'll just alert, but in a real implementation, 
+      // this would trigger a download or redirect to a download page
+      alert('Your free book is now downloading!');
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleBuyPaidBook = async () => {
+    setLoading('paid');
+    
+    try {
+      const selectedPrice = getSelectedPrice();
+      
+      // Create checkout session
+      const response = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          priceId: selectedPrice.priceInCents,
+          bookTitle: paidBook.title,
+          productId: paidBook.productId
+        }),
+      });
+
+      const { sessionId } = await response.json();
+
+      // Redirect to Stripe Checkout
+      const stripe = await getStripe();
+      await stripe?.redirectToCheckout({ sessionId });
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setLoading(null);
+    }
+  };
 
   const handleBuyBook = async (book: any) => {
     setLoading(book.id);
@@ -96,7 +178,7 @@ export default function HomePage() {
   };
 
   const handleBuyBundle = async () => {
-    setLoading(999);
+    setLoading('bundle');
     
     try {
       const response = await fetch('/api/create-checkout', {
@@ -121,13 +203,30 @@ export default function HomePage() {
     }
   };
 
+  // Star rating component
+  const StarRating = () => (
+    <div className="flex flex-col">
+      <div className="flex items-center text-left">
+        <div className="flex space-x-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <svg key={star} className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+            </svg>
+          ))}
+        </div>
+        <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">0 Ratings. They are just a social construct anyway.</span>
+      </div>
+      <p className="text-xs text-gray-500 mt-1 text-left">10 pages</p>
+    </div>
+  );
+
   return (
     <div className="bg-black text-white">
-      {/* Hero Section */}
-      <section className="min-h-screen flex items-center justify-center px-4 py-20">
-        <div className="max-w-6xl mx-auto text-center">
+      {/* Hero Section with Two Book Layout */}
+      <section className="min-h-screen flex items-center justify-center px-4 py-10">
+        <div className="max-w-6xl mx-auto">
           {/* Main Headline */}
-          <h1 className="text-6xl md:text-8xl font-black mb-6 leading-tight">
+          <h1 className="text-4xl md:text-7xl font-black mb-6 leading-tight text-center">
             I Spent{' '}
             <span className="text-emerald-500">7 Months</span>
             <br />
@@ -137,70 +236,158 @@ export default function HomePage() {
           </h1>
           
           {/* Subheadline */}
-          <p className="text-xl md:text-2xl mb-12 text-gray-300 max-w-4xl mx-auto">
+          <p className="text-lg md:text-xl mb-10 text-gray-300 max-w-4xl mx-auto text-center">
             Listen, I've been unemployed for months.
             <br />
             <br />This is your chance to help me so that I can help you to help yourself by helping others to help me too. And maybe, just maybe, that will help them to help others who do the same.
           </p>
-
-          {/* Featured Books Grid */}
-          <div id="books" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-12">
-            {featuredBooks.map((book) => (
-              <div
-                key={book.id}
-                className="bg-gray-900 rounded-lg p-4 md:p-6 hover:bg-gray-800 transition-all duration-300 hover:scale-105"
-              >
-                {/* Placeholder for book cover image */}
-                <div className="bg-slate-700 h-48 rounded-lg mb-4 flex items-center justify-center">
-                  <span className="text-white text-sm">Book Cover Image</span>
+          
+          {/* Two Column Book Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+            {/* Left Column - Free Book */}
+            <div 
+              className="bg-[#1a1a1a] rounded-lg p-6 hover:shadow-lg transition-all duration-300 flex flex-col h-full"
+            >
+              <h2 className="text-lg font-bold mb-2 line-clamp-1 text-left">
+                {freeBook.title}
+              </h2>
+              
+              <div className="flex justify-center mb-3">
+                <Image 
+                  src={freeBook.coverUrl}
+                  alt={freeBook.title}
+                  width={300}
+                  height={450}
+                  className="rounded-md shadow-lg max-w-full h-auto"
+                  priority
+                />
+              </div>
+              
+              <StarRating />
+              
+              <div className="mt-2 mb-1 text-left">
+                <span className="line-through text-red-500 text-lg font-bold">$0.01</span>
+              </div>
+              
+              <div className="mb-2">
+                <span className="bg-emerald-500 text-black px-3 py-1 rounded-md font-bold inline-block transform -rotate-3 relative border-2 border-dashed border-yellow-400 shadow-lg text-sm">
+                  <span className="absolute top-0 right-0 text-xs bg-yellow-400 text-black px-1 py-0.5 rounded-bl-md transform translate-x-1 -translate-y-1 font-black">DEAL</span>
+                  100% OFF
+                </span>
+              </div>
+              
+              <div className="mt-auto">
+                <Button
+                  variant="flat"
+                  className="font-bold px-4 py-2 disabled:opacity-50 w-full text-md shadow-lg hover:scale-105 transition-all"
+                  onClick={handleDownloadFreeBook}
+                  disabled={loading === 'free'}
+                >
+                  {loading === 'free' ? 'Loading...' : 'Just take it'}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Right Column - Paid Book */}
+            <div className="bg-[#1a1a1a] rounded-lg p-6 hover:shadow-lg transition-all duration-300 flex flex-col h-full">
+              <h2 className="text-lg font-bold mb-2 line-clamp-1 text-left">
+                {paidBook.title}
+              </h2>
+              
+              <div className="flex justify-center mb-3">
+                <Image 
+                  src={paidBook.coverUrl}
+                  alt={paidBook.title}
+                  width={300}
+                  height={450}
+                  className="rounded-md shadow-lg max-w-full h-auto"
+                  priority
+                />
+              </div>
+              
+              <StarRating />
+              
+              <div className="mt-2 mb-1 text-left">
+                <span className="line-through text-red-500 text-lg font-bold">${paidBook.originalPrice.toFixed(2)}</span>
+              </div>
+              
+              <p className="text-xs text-gray-400 mb-2">
+                Choose whichever number speaks to your inner entrepreneur.
+              </p>
+              
+              <div className="mb-2">
+                <div className="grid grid-cols-3 gap-1 mb-1">
+                  {paidBook.priceTiers.slice(0, 3).map((tier) => (
+                    <div key={tier.id} className="h-8 flex items-stretch">
+                      <button
+                        className={`w-full flex items-center justify-center py-1 px-1 text-xs rounded ${
+                          selectedPriceId === tier.id
+                            ? 'bg-emerald-500 text-black font-bold'
+                            : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
+                        }`}
+                        onClick={() => setSelectedPriceId(tier.id)}
+                      >
+                        {tier.label}
+                      </button>
+                    </div>
+                  ))}
                 </div>
-                
-                <h3 className="font-bold text-lg mb-2 line-clamp-2 min-h-[3.5rem]">
-                  {book.title}
-                </h3>
-                
-                <p className="text-gray-400 text-sm mb-4">
-                  {book.description}
-                </p>
-                
-                <div className="text-center">
-                  <div className="text-emerald-500 font-bold text-xl mb-3">
-                    ${book.price}
-                  </div>
-                  <Button
-                    variant="slim"
-                    className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 disabled:opacity-50 w-full"
-                    onClick={() => handleBuyBook(book)}
-                    disabled={loading === book.id}
-                  >
-                    {loading === book.id ? 'Loading...' : 'Buy This Bullsh*t'}
-                  </Button>
+                <div className="grid grid-cols-2 gap-1">
+                  {paidBook.priceTiers.slice(3, 4).map((tier) => (
+                    <div key={tier.id} className="h-8 flex items-stretch">
+                      <button
+                        className={`w-full flex items-center justify-center py-1 px-1 text-xs rounded ${
+                          selectedPriceId === tier.id
+                            ? 'bg-emerald-500 text-black font-bold'
+                            : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
+                        }`}
+                        onClick={() => setSelectedPriceId(tier.id)}
+                      >
+                        {tier.label}
+                      </button>
+                    </div>
+                  ))}
+                  {paidBook.priceTiers.slice(4, 5).map((tier) => (
+                    <div key={tier.id} className="h-8 flex items-stretch">
+                      <button
+                        className={`w-full flex items-center justify-center py-1 px-1 text-xs rounded relative ${
+                          selectedPriceId === tier.id
+                            ? 'bg-emerald-500 text-black font-bold'
+                            : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
+                        }`}
+                        onClick={() => setSelectedPriceId(tier.id)}
+                        onMouseEnter={() => setShowTooltip(true)}
+                        onMouseLeave={() => setShowTooltip(false)}
+                      >
+                        {tier.label}
+                        {showTooltip && (
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-black text-white p-2 rounded text-xs w-64 mb-2 shadow-lg z-10">
+                            {tier.tooltip}
+                          </div>
+                        )}
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
+              
+              <div className="mt-auto">
+                <Button
+                  variant="orange"
+                  className="font-bold px-4 py-2 disabled:opacity-50 w-full text-md shadow-lg hover:scale-105 transition-all"
+                  onClick={handleBuyPaidBook}
+                  disabled={loading === 'paid'}
+                >
+                  {loading === 'paid' ? 'Loading...' : 'Buy this BS'}
+                </Button>
+              </div>
+            </div>
           </div>
-
-          {/* Main CTA */}
-          <div id="bundle">
-            <Button
-            variant="slim"
-            className="bg-emerald-500 hover:bg-emerald-600 text-black font-bold text-base md:text-xl px-6 md:px-12 py-3 md:py-4 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 w-full sm:w-auto"
-            onClick={handleBuyBundle}
-            disabled={loading === 999}
-          >
-            {loading === 999 ? 'Loading...' : (
-              <span>
-                <span className="hidden md:inline">Get All 6 Books for $39.99 (Save Your Dignity Later)</span>
-                <span className="md:hidden">Bundle All 6 Books - $39.99</span>
-              </span>
-            )}
-          </Button>
-        </div>
         </div>
       </section>
 
-      {/* Problem Section */}
-      <section className="py-20 px-4 bg-indigo-900">
+      {/* Problem Section - updated colors */}
+      <section className="py-20 px-4 bg-[#2d2d2d] mb-0">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-8">
             Let's Be <span className="text-emerald-500">Honest</span>
@@ -221,7 +408,7 @@ export default function HomePage() {
             <div className="flex justify-center">
               <Link 
                 href="/#books" 
-                className="bg-emerald-500 hover:bg-emerald-600 text-black px-10 py-3 rounded-lg font-bold text-sm transition-all transform hover:scale-105"
+                className="bg-[#ff6b35] hover:bg-[#ff8c42] text-white px-12 py-4 rounded-lg font-bold text-lg transition-all transform hover:scale-105"
               >
                 Buy the BS
               </Link>
@@ -240,34 +427,56 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Social Proof (Obviously Fake) */}
-      <section className="py-20 px-4">
+      {/* Social Proof - updated colors */}
+      <section className="pt-10 pb-20 px-4">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-4xl font-bold text-center mb-12">
             Join <span className="text-emerald-500">Real People</span> Who Can't Believe What They've Just Read
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-indigo-800 p-6 rounded-lg">
+            <div className="bg-[#2d2d2d] p-6 rounded-lg">
               <p className="text-white mb-4">
                 "You know when you're deep in a book and after a few pages you sort've "wake up" and realize you have no clue what you've been reading? That's what BScribe did for me."
               </p>
               <p className="text-emerald-500 font-bold">- Sarah K., Professional Overthinker</p>
             </div>
             
-            <div className="bg-indigo-800 p-6 rounded-lg">
+            {/* Mobile "Buy their BS" button - only visible on mobile */}
+            <div className="block md:hidden my-4">
+              <Button
+                variant="orange"
+                className="font-bold px-8 py-3 rounded-lg text-lg w-full shadow-lg transform hover:scale-105 transition-all"
+                onClick={handleBuyBundle}
+              >
+                Buy their BS
+              </Button>
+            </div>
+            
+            <div className="bg-[#2d2d2d] p-6 rounded-lg">
               <p className="text-white mb-4">
                 "Finally, a self-help book that was completely helpless. Refreshingly honest and now I don't feel so alone."
               </p>
               <p className="text-emerald-500 font-bold">- Mike D., Change Agent</p>
             </div>
             
-            <div className="bg-indigo-800 p-6 rounded-lg">
+            <div className="bg-[#2d2d2d] p-6 rounded-lg">
               <p className="text-white mb-4">
                 "No purchase has ever made me want to get my life back together more."
               </p>
               <p className="text-emerald-500 font-bold">- Alex R., Parent of 8</p>
             </div>
+          </div>
+          
+          {/* Desktop "Buy their BS" button - only visible on desktop */}
+          <div className="hidden md:flex justify-center mt-10">
+            <Button
+              variant="orange"
+              className="font-bold px-10 py-4 rounded-lg text-xl shadow-lg transform hover:scale-105 transition-all"
+              onClick={handleBuyBundle}
+            >
+              Buy their BS
+            </Button>
           </div>
           
           {/* Fake counter */}
@@ -279,10 +488,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Final CTA */}
+      {/* Final CTA - updated color */}
       <section className="py-20 px-4" style={{backgroundColor: '#ff0000'}}>
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-8">
+          <h2 className="text-4xl md:text-5xl font-bold mb-8 text-white">
             STOP OVERTHINKING
           </h2>
           
@@ -292,15 +501,15 @@ export default function HomePage() {
           </p>
           
           <Button
-            variant="slim"
-            className="bg-emerald-500 hover:bg-emerald-600 text-black font-bold text-xl md:text-2xl px-8 md:px-16 py-4 md:py-6 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 w-full sm:w-auto"
+            variant="flat"
+            className="font-bold text-xl px-10 py-4 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 w-full sm:w-auto"
             onClick={handleBuyBundle}
-            disabled={loading === 999}
+            disabled={loading === 'bundle'}
           >
-            {loading === 999 ? 'Loading...' : 'BUY THE BS'}
+            {loading === 'bundle' ? 'Loading...' : 'BUY THE BS'}
           </Button>
           
-          <p className="text-sm text-gray-700 mt-4">
+          <p className="text-sm text-black mt-4">
             No refunds. We don't want it back.
           </p>
         </div>

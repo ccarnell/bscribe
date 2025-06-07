@@ -21,12 +21,12 @@ export default function TermsPage() {
             
             <div>
               <h3 className="text-xl font-bold text-emerald-500 mb-3">3. Intellectual Property</h3>
-              <p>All content purchased on Bscribe.ai is the intellectual property of Cass Joel LLC. You may not redistribute, resell, or use the material for commercial purposes without explicit written consent from Cass Joel LLC. Contact us via email at support@bscribe.ai.com, via phone at (415) 494-7022, and via mail at 8 The Grn Ste B, Dover, Delaware, 19901</p>
+              <p>All content purchased on Bscribe.ai is the intellectual property of BScribe. You may not redistribute, resell, or use the material for commercial purposes without explicit written consent from BScribe. Contact us via email at support@bscribe.ai.com.</p>
             </div>
             
             <div>
               <h3 className="text-xl font-bold text-emerald-500 mb-3">4. Use at Your Own Risk</h3>
-              <p>Bscribe.ai and Cass Joel LLC shall not be liable for any misunderstanding, offense, or dissatisfaction arising from the purchase or use of the satirical content provided.</p>
+              <p>Bscribe.ai shall not be liable for any misunderstanding, offense, or dissatisfaction arising from the purchase or use of the satirical content provided.</p>
             </div>
             
             <div>
@@ -37,7 +37,7 @@ export default function TermsPage() {
           
           <div className="mt-12 p-6 bg-gray-900 rounded-lg">
             <h2 className="text-2xl font-bold text-emerald-500 mb-4">Disclaimer</h2>
-            <p>The content provided by Bscribe.ai is solely for humorous and satirical purposes. It is not intended as professional, financial, legal, or personal advice. Cass Joel LLC and Bscribe.ai expressly disclaim responsibility for any actions taken based on the satirical content provided. Users acknowledge that all content is fictional and created purely for entertainment purposes.</p>
+            <p>The content provided by Bscribe.ai is solely for humorous and satirical purposes. It is not intended as professional, financial, legal, or personal advice. BScribe expressly disclaims responsibility for any actions taken based on the satirical content provided. Users acknowledge that all content is fictional and created purely for entertainment purposes.</p>
           </div>
         </div>
       </div>

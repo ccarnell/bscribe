@@ -47,7 +47,7 @@ export default function Navlinks({ user }: NavlinksProps) {
           <div className="flex justify-end">
             <Link 
               href="/#books" 
-              className="bg-emerald-500 hover:bg-emerald-600 text-black px-5 py-2 md:px-4 md:py-2 rounded-lg font-bold text-sm transition-all transform hover:scale-105"
+              className="bg-[#ff6b35] hover:bg-[#ff8c42] text-white px-6 py-2 md:px-6 md:py-3 rounded-lg font-bold text-base transition-all transform hover:scale-105"
             >
               Buy the BS
             </Link>
