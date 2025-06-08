@@ -116,7 +116,7 @@ export default function VotingInterface() {
       }
       
       setVotedTitles(newVotedTitles);
-      localStorage.setItem('bscribe_voted_titles', JSON.stringify([...newVotedTitles]));
+      localStorage.setItem('bscribe_voted_titles', JSON.stringify(Array.from(newVotedTitles)));
       
     } catch (err) {
       console.error('Vote error:', err);
