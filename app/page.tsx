@@ -102,17 +102,55 @@ export default function HomePage() {
   };
 
   const handleDownloadFreeBook = async () => {
-    // Implement free download logic here
+    // Download free book from Supabase storage
     setLoading('free');
     try {
-      // Simulate download delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // For now, we'll just alert, but in a real implementation, 
-      // this would trigger a download or redirect to a download page
-      alert('Your free book is now downloading!');
+      // Add session ID for tracking
+      const sessionId = `free_${Date.now()}`;
+      console.log(`Initiating free book download with session ID: ${sessionId}`);
+      console.log(`Book ID being requested: ${freeBook.productId}`);
+      
+      // Fetch the secure download URL from the free downloads endpoint
+      const response = await fetch('/api/download-free', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-session-id': sessionId 
+        },
+        body: JSON.stringify({
+          bookId: freeBook.productId,
+        }),
+      });
+      
+      // Check response status
+      console.log(`Download API response status: ${response.status}`);
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Download API error response:', errorData);
+        throw new Error(`Failed to get download link: ${response.status} ${errorData}`);
+      }
+      
+      const responseData = await response.json();
+      console.log('Download API response:', responseData);
+      
+      if (!responseData.downloadUrl) {
+        throw new Error('No download URL returned');
+      }
+      
+      // For development environment, the mock image is opened directly
+      if (responseData.dev) {
+        console.log(`Opening development mock image: ${responseData.downloadUrl}`);
+        window.open(responseData.downloadUrl, '_blank');
+        return;
+      }
+      
+      // For production, open the download URL which now points to our file proxy
+      console.log(`Opening download via proxy: ${responseData.downloadUrl}`);
+      window.location.href = responseData.downloadUrl; // Use location.href instead of window.open for more reliable downloads
     } catch (error) {
-      console.error('Error:', error);
-      alert('Something went wrong. Please try again.');
+      console.error('Download error:', error);
+      alert(`Download failed: ${error instanceof Error ? error.message : 'Please try again later.'}`);
     } finally {
       setLoading(null);
     }
@@ -251,7 +289,7 @@ export default function HomePage() {
                 {freeBook.title}
               </h2>
               
-              <p className="text-xs text-gray-400 mb-2 text-left">10 Pages | Free ebook | Adult coloring</p>
+              <p className="text-xs text-gray-400 mb-2 text-left">10 Pages | Download free ebook</p>
               
               <div className="flex justify-center mb-3">
                 <Image 
@@ -270,7 +308,7 @@ export default function HomePage() {
                 <span className="line-through text-red-500 text-lg font-bold">$0.01</span>
                 <div className="mt-1">
                   <span className="bg-emerald-500 text-black px-2 py-0.5 rounded-md font-bold inline-block transform -rotate-3 relative border-2 border-dashed border-yellow-400 shadow-lg text-xs">
-                    <span className="absolute top-0 right-0 text-[10px] bg-yellow-400 text-black px-0.5 py-px rounded-bl-md transform translate-x-1 -translate-y-1 font-black">DEAL</span>
+                    <span className="absolute top-0 right-0 text-[10px] bg-yellow-400 text-black px-0.5 py-px rounded-bl-md transform translate-x-6 -translate-y-1 font-black">DEAL</span>
                     100% OFF
                   </span>
                 </div>
@@ -308,7 +346,7 @@ export default function HomePage() {
                 {paidBook.title}
               </h2>
               
-              <p className="text-xs text-gray-400 mb-2 text-left">10 Pages | Premium ebook</p>
+              <p className="text-xs text-gray-400 mb-2 text-left">48 Pages | Premium ebook with adult coloring & audiobook</p>
               
               <div className="flex justify-center mb-3">
                 <Image 
@@ -374,14 +412,21 @@ export default function HomePage() {
                 </div>
               </div>
               
-              <div className="mt-auto">
+              <div className="mt-auto relative">
+                <div className="absolute inset-0 flex items-center justify-center z-10 bg-black bg-opacity-70 rounded-md">
+                  <div className="text-center p-2">
+                    <div className="border-2 border-yellow-400 border-dashed p-2 bg-black bg-opacity-90 rounded">
+                      <p className="text-yellow-400 font-bold text-sm">🚧 UNDER CONSTRUCTION 🚧</p>
+                      <p className="text-gray-300 text-xs mt-1">Coming soon!</p>
+                    </div>
+                  </div>
+                </div>
                 <Button
                   variant="orange"
-                  className="font-bold px-4 py-2 disabled:opacity-50 w-full text-lg shadow-lg hover:scale-105 transition-all"
-                  onClick={() => handleBuyPaidBook()}
-                  disabled={loading === 'paid'}
+                  className="font-bold px-4 py-2 opacity-30 w-full text-lg shadow-lg cursor-not-allowed"
+                  disabled={true}
                 >
-                  {loading === 'paid' ? 'Loading...' : 'Buy this BS'}
+                  Buy this BS
                 </Button>
               </div>
             </div>
@@ -395,7 +440,6 @@ export default function HomePage() {
               <div className="flex flex-col items-center">
                 <button
                   className="w-full flex items-center justify-center py-1 px-1 text-sm rounded bg-[#2d2d2d] text-white hover:bg-[#ff6b35] mb-1 h-10"
-                  onClick={() => handleBuyBundle(1337)}
                 >
                   $13.37
                 </button>
@@ -404,26 +448,31 @@ export default function HomePage() {
               <div className="flex flex-col items-center">
                 <button
                   className="w-full flex items-center justify-center py-1 px-1 text-sm rounded bg-[#2d2d2d] text-white hover:bg-[#ff6b35] mb-1 h-10"
-                  onClick={() => handleBuyBundle(9001)}
                 >
-                  $90.01<sup>*</sup>
+                  $90.01
                 </button>
                 <span className="text-xs text-gray-400">Because you can</span>
               </div>
             </div>
             
-            <Button
-              variant="orange"
-              className="font-bold px-4 py-2 mx-auto max-w-xs w-full text-lg shadow-lg hover:scale-105 transition-all"
-              onClick={() => handleBuyBundle()}
-              disabled={loading === 'bundle'}
-            >
-              {loading === 'bundle' ? 'Loading...' : 'Bundle this BS'}
-            </Button>
-            
-            <div className="text-[13px] text-emerald-500 font-medium mt-2 max-w-xs mx-auto text-center">
-              <p><sup>*</sup> 💚 If you seriously select <span className="font-bold">$90.00</span>, then <span className="font-bold">$21.01</span> will be donated to National Suicide Prevention Lifeline</p>
+            <div className="relative max-w-xs mx-auto">
+              <div className="absolute inset-0 flex items-center justify-center z-10 bg-black bg-opacity-70 rounded-md">
+                <div className="text-center p-2">
+                  <div className="border-2 border-yellow-400 border-dashed p-2 bg-black bg-opacity-90 rounded">
+                    <p className="text-yellow-400 font-bold text-sm">🚧 UNDER CONSTRUCTION 🚧</p>
+                    <p className="text-gray-300 text-xs mt-1">Coming soon!</p>
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="orange"
+                className="font-bold px-4 py-2 mx-auto max-w-xs w-full text-lg shadow-lg opacity-30 cursor-not-allowed"
+                disabled={true}
+              >
+                Bundle this BS
+              </Button>
             </div>
+            
           </div>
         </div>
       </section>
@@ -486,6 +535,7 @@ export default function HomePage() {
             
             {/* Mobile "Buy their BS" button - only visible on mobile */}
             <div className="block md:hidden my-4">
+              {/* Commented out until ready
               <Button
                 variant="orange"
                 className="font-bold px-8 py-3 rounded-lg text-lg w-full shadow-lg transform hover:scale-105 transition-all"
@@ -493,6 +543,7 @@ export default function HomePage() {
               >
                 Buy their BS
               </Button>
+              */}
             </div>
             
             <div className="bg-[#2d2d2d] p-6 rounded-lg">
@@ -512,6 +563,7 @@ export default function HomePage() {
           
           {/* Desktop "Buy their BS" button - only visible on desktop */}
           <div className="hidden md:flex justify-center mt-10">
+            {/* Commented out until ready 
             <Button
               variant="orange"
               className="font-bold px-10 py-4 rounded-lg text-xl shadow-lg transform hover:scale-105 transition-all"
@@ -519,6 +571,7 @@ export default function HomePage() {
             >
               Buy their BS
             </Button>
+            */}
           </div>
           
           {/* Fake counter */}
@@ -541,6 +594,7 @@ export default function HomePage() {
             Cancel one of your 12 forgotten subscriptions and buy this BS instead.
           </p>
           
+          {/* Commented out until ready
           <Button
             variant="flat"
             className="font-bold text-2xl px-10 py-4 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 w-full sm:w-auto"
@@ -549,10 +603,8 @@ export default function HomePage() {
           >
             {loading === 'bundle' ? 'Loading...' : 'BUY THE BS'}
           </Button>
+          */}
           
-          <p className="text-sm mt-4" style={{ color: 'rgba(0, 0, 0, 0.6)' }}>
-            No refunds. We don't want it back.
-          </p>
         </div>
       </section>
     </div>

@@ -161,73 +161,15 @@ export async function GET(
       );
     }
 
-    // Generate fresh signed URL (1 hour expiry)
-    const { data: urlData, error: urlError } = await supabase.storage
-      .from('books')
-      .createSignedUrl(filePath, 3600);
-
-    if (urlError || !urlData) {
-      console.error('Storage error:', urlError);
-      return new NextResponse(
-        `<!DOCTYPE html>
-        <html>
-        <head>
-          <title>Download Error - BScribe</title>
-          <style>
-            body {
-              background: #000;
-              color: #fff;
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              min-height: 100vh;
-              margin: 0;
-              padding: 20px;
-            }
-            .container {
-              text-align: center;
-              max-width: 500px;
-            }
-            h1 {
-              color: #ef4444;
-              margin-bottom: 20px;
-            }
-            p {
-              color: #9ca3af;
-              line-height: 1.6;
-              margin-bottom: 30px;
-            }
-            a {
-              color: #10b981;
-              text-decoration: none;
-              font-weight: 600;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>Download Temporarily Unavailable</h1>
-            <p>We're having trouble accessing the file right now.</p>
-            <p>Please try again in a few moments, or contact <a href="mailto:support@bscribe.ai">support@bscribe.ai</a> if the problem persists.</p>
-            <p style="margin-top: 40px;">
-              <a href="javascript:location.reload()">← Try Again</a>
-            </p>
-          </div>
-        </body>
-        </html>`,
-        { 
-          status: 500, 
-          headers: { 'Content-Type': 'text/html' } 
-        }
-      );
-    }
-
     // Log successful download
     console.log(`Download initiated for product ${purchase.product_id} - Download #${currentCount + 1}`);
 
-    // Redirect to the signed URL
-    return NextResponse.redirect(urlData.signedUrl);
+    // Use our new file proxy for more reliable downloads
+    const proxyUrl = `/api/file-proxy?path=${encodeURIComponent(filePath)}`;
+    console.log(`Using file proxy: ${proxyUrl}`);
+
+    // Redirect to the proxy URL
+    return NextResponse.redirect(proxyUrl);
     
   } catch (error) {
     console.error('Download error:', error);

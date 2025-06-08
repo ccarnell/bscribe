@@ -55,6 +55,11 @@ export default function Footer() {
                   Terms of Service
                 </Link>
               </li>
+              <li>
+                <span className="text-gray-400">
+                  Contact Deez via ToS
+                </span>
+              </li>
             </ul>
           </div>
           
@@ -69,11 +74,6 @@ export default function Footer() {
                 >
                   Call for Support
                 </a>
-              </li>
-              <li>
-                <span className="text-gray-400">
-                  Contact Deez via ToS
-                </span>
               </li>
             </ul>
           </div>
