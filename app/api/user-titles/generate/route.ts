@@ -101,6 +101,7 @@ const RANDOM_CONTEXTS = [
 
 export async function POST(request: NextRequest) {
   try {
+      console.log('=== USER TITLE GENERATE START ===');
     // Parse request body to get slot index
     const { slotIndex } = await request.json();
     
@@ -209,6 +210,7 @@ export async function POST(request: NextRequest) {
     });
       
   } catch (error) {
+    console.error('=== USER TITLE GENERATE START ===');
     console.error('Title generation error:', error);
     return Response.json(
       { success: false, error: error instanceof Error ? error.message : 'Failed to generate title' },
