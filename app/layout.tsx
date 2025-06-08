@@ -6,6 +6,7 @@ import Navbar from '@/components/ui/Navbar';
 import { Toaster } from '@/components/ui/Toasts/toaster';
 import { PropsWithChildren, Suspense } from 'react';
 import { getURL } from '@/utils/helpers';
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import 'styles/main.css';
 
 const title = 'Bscribe - Self-Help Books That Admit They\'re Full of Sh*t';
@@ -46,6 +47,7 @@ export default async function RootLayout({ children }: PropsWithChildren) {
           className="min-h-[calc(100dvh-4rem)] md:min-h[calc(100dvh-5rem)]"
         >
           {children}
+          <SpeedInsights />
         </main>
         <Footer />
         <Suspense>
