@@ -289,7 +289,7 @@ export default function HomePage() {
                 {freeBook.title}
               </h2>
               
-              <p className="text-xs text-gray-400 mb-2 text-left">10 Pages | Download free ebook</p>
+              <p className="text-xs text-gray-400 mb-2 text-left">7 Pages | Download free ebook</p>
               
               <div className="flex justify-center mb-3">
                 <Image 
@@ -346,7 +346,7 @@ export default function HomePage() {
                 {paidBook.title}
               </h2>
               
-              <p className="text-xs text-gray-400 mb-2 text-left">48 Pages | Premium ebook with adult coloring & audiobook</p>
+              <p className="text-xs text-gray-400 mb-2 text-left">48 Pages | Premium ebook</p>
               
               <div className="flex justify-center mb-3">
                 <Image 
