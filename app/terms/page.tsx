@@ -21,7 +21,7 @@ export default function TermsPage() {
             
             <div>
               <h3 className="text-xl font-bold text-emerald-500 mb-3">3. Intellectual Property</h3>
-              <p>All content purchased on Bscribe.ai is the intellectual property of BScribe. You may not redistribute, resell, or use the material for commercial purposes without explicit written consent from BScribe. Contact us via email at support@bscribe.ai.com.</p>
+              <p>All content purchased on Bscribe.ai is the intellectual property of BScribe. You may not redistribute, resell, or use the material for commercial purposes without explicit written consent from BScribe. Contact us via email at support@bscribe.ai.</p>
             </div>
             
             <div>
