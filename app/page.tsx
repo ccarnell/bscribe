@@ -2,68 +2,26 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import { getStripe } from '@/utils/stripe/client';
 import { Analytics } from "@vercel/analytics/next"
 
-// Featured books data
-const featuredBooks = [
-  {
-    id: 1,
-    productID: 'prod_book_1',
-    title: "The 7 F*cking Secrets of How to Hack the Art of Everything You Need to Know",
-    price: 9.99,
-    priceInCents: 999,
-    description: "Finally, a self-help book that admits it's completely made up.",
-    coverUrl: "/placeholder-cover-1.jpg"
-  },
-  {
-    id: 2,
-    productId: 'prod_book_2',
-    title: "Think Like a Motherf*cking Navy SEAL CEO", 
-    price: 12.99,
-    priceInCents: 1299,
-    description: "Corporate buzzwords meet military discipline meets absolute nonsense.",
-    coverUrl: "/placeholder-cover-2.jpg"
-  },
-  {
-    id: 3,
-    productId: 'prod_book_3',
-    title: "From Broke-Ass Loser to F*ckable Billionaire in 30 Minutes",
-    price: 7.99,
-    priceInCents: 799,
-    description: "The quickest path to success that definitely won't work.",
-    coverUrl: "/placeholder-cover-3.jpg"
-  },
-  {
-    id: 4,
-    productId: 'prod_book_4',
-    title: "The 42-Parameter Deep Learning Framework for Optimizing Your Neural Pathways",
-    price: 14.99,
-    priceInCents: 1499,
-    description: "AI-speak meets self-help. It's as confused as you are.",
-    coverUrl: "/placeholder-cover-4.jpg"
-  },
-  {
-    id: 5,
-    productId: 'prod_book_5',
-    title: "Authentically Leveraging Your Personal Brand's F*cking Synergy",
-    price: 11.99,
-    priceInCents: 1199,
-    description: "LinkedIn thought leadership at its most ridiculous.",
-    coverUrl: "/placeholder-cover-5.jpg"
-  },
-  {
-    id: 6,
-    productId: 'prod_book_6',
-    title: "Zero-Shot Learning the Art of Maximum F*ckery",
-    price: 8.99,
-    priceInCents: 899,
-    description: "Machine learning meets life advice. Neither makes sense.",
-    coverUrl: "/placeholder-cover-6.jpg"
-  }
-];
+function ConditionalAnalytics() {
+  const [shouldTrack, setShouldTrack] = useState(true);
+
+  useEffect(() => {
+    const isAdmin = localStorage.getItem('bscribe_admin_exclude');
+    if (isAdmin === 'true') {
+      setShouldTrack(false);
+      console.log('🚫 Analytics tracking disabled for admin');
+    } else {
+      console.log('📊 Analytics tracking enabled');
+    }
+  }, []);
+
+  return shouldTrack ? <Analytics /> : null;
+}
 
 // Hero section featured books
 const freeBook = {
@@ -109,42 +67,42 @@ export default function HomePage() {
       const sessionId = `free_${Date.now()}`;
       console.log(`Initiating free book download with session ID: ${sessionId}`);
       console.log(`Book ID being requested: ${freeBook.productId}`);
-      
+
       // Fetch the secure download URL from the free downloads endpoint
       const response = await fetch('/api/download-free', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'x-session-id': sessionId 
+          'x-session-id': sessionId
         },
         body: JSON.stringify({
           bookId: freeBook.productId,
         }),
       });
-      
+
       // Check response status
       console.log(`Download API response status: ${response.status}`);
-      
+
       if (!response.ok) {
         const errorData = await response.text();
         console.error('Download API error response:', errorData);
         throw new Error(`Failed to get download link: ${response.status} ${errorData}`);
       }
-      
+
       const responseData = await response.json();
       console.log('Download API response:', responseData);
-      
+
       if (!responseData.downloadUrl) {
         throw new Error('No download URL returned');
       }
-      
+
       // For development environment, the mock image is opened directly
       if (responseData.dev) {
         console.log(`Opening development mock image: ${responseData.downloadUrl}`);
         window.open(responseData.downloadUrl, '_blank');
         return;
       }
-      
+
       // For production, open the download URL which now points to our file proxy
       console.log(`Opening download via proxy: ${responseData.downloadUrl}`);
       window.location.href = responseData.downloadUrl; // Use location.href instead of window.open for more reliable downloads
@@ -158,14 +116,14 @@ export default function HomePage() {
 
   const handleBuyPaidBook = async () => {
     setLoading('paid');
-    
+
     try {
       const selectedPrice = getSelectedPrice();
-      
+
       // Create checkout session
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           priceId: selectedPrice.priceInCents,
           bookTitle: paidBook.title,
@@ -188,12 +146,12 @@ export default function HomePage() {
 
   const handleBuyBook = async (book: any) => {
     setLoading(book.id);
-    
+
     try {
       // Create checkout session
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           priceId: book.priceInCents,
           bookTitle: book.title,
@@ -216,7 +174,7 @@ export default function HomePage() {
 
   const handleBuyBundle = async (priceInCents = 1337) => {
     setLoading('bundle');
-    
+
     try {
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
@@ -271,28 +229,28 @@ export default function HomePage() {
             <span className="text-emerald-500">You Don't</span>
             <Analytics />
           </h1>
-          
+
           {/* Subheadline */}
           <p className="text-lg md:text-xl mb-10 text-gray-300 max-w-4xl mx-auto text-center">
             Listen, I've been unemployed for months.
             <br />
             <br />This is your chance to help me so that I can help you to help yourself by helping others to help me too. And maybe, just maybe, that will help them to help others who do the same.
           </p>
-          
+
           {/* Two Column Book Layout */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 md:max-w-5xl mx-auto">
             {/* Left Column - Free Book */}
-            <div 
+            <div
               onClick={handleDownloadFreeBook}
               className="bg-[#1a1a1a] rounded-lg p-6 md:p-4 hover:shadow-lg transition-all duration-300 flex flex-col h-full cursor-pointer">
               <h2 className="text-lg font-bold mb-1 line-clamp-1 text-left">
                 {freeBook.title}
               </h2>
-              
+
               <p className="text-xs text-gray-400 mb-2 text-left">7 Pages | Download free ebook</p>
-              
+
               <div className="flex justify-center mb-3">
-                <Image 
+                <Image
                   src={freeBook.coverUrl}
                   alt={freeBook.title}
                   width={300}
@@ -301,9 +259,9 @@ export default function HomePage() {
                   priority
                 />
               </div>
-              
+
               <StarRating />
-              
+
               <div className="mt-2 mb-1 text-left">
                 <span className="line-through text-red-500 text-lg font-bold">$0.01</span>
                 <div className="mt-1">
@@ -313,9 +271,9 @@ export default function HomePage() {
                   </span>
                 </div>
               </div>
-              
+
               <div className="flex-1"></div>
-              
+
               <div className="grid grid-cols-3 gap-3 mb-2 mt-3">
                 <div className="flex flex-col items-center">
                   <button
@@ -327,7 +285,7 @@ export default function HomePage() {
                 </div>
                 <div className="col-span-2"></div>
               </div>
-              
+
               <div className="mt-auto">
                 <Button
                   variant="flat"
@@ -339,17 +297,17 @@ export default function HomePage() {
                 </Button>
               </div>
             </div>
-            
+
             {/* Right Column - Paid Book */}
             <div className="bg-[#1a1a1a] rounded-lg p-6 md:p-4 hover:shadow-lg transition-all duration-300 flex flex-col h-full">
               <h2 className="text-lg font-bold mb-1 line-clamp-1 text-left">
                 {paidBook.title}
               </h2>
-              
+
               <p className="text-xs text-gray-400 mb-2 text-left">48 Pages | Premium ebook</p>
-              
+
               <div className="flex justify-center mb-3">
-                <Image 
+                <Image
                   src={paidBook.coverUrl}
                   alt={paidBook.title}
                   width={300}
@@ -358,52 +316,49 @@ export default function HomePage() {
                   priority
                 />
               </div>
-              
+
               <StarRating />
-              
+
               <div className="mt-2 mb-1 text-left">
                 <span className="line-through text-red-500 text-lg font-bold">${paidBook.originalPrice.toFixed(2)}</span>
                 <p className="text-xs text-gray-400 mt-1">
                   Someone mentioned A/B testing... 'price elasticity' (whatever that means). Same product, choose your price.
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-3 mb-2 mt-3">
                 <div className="flex flex-col items-center">
                   <button
-                    className={`w-full flex items-center justify-center py-1 px-1 text-sm rounded mb-1 h-10 ${
-                      selectedPriceId === 'price_1'
-                        ? 'bg-emerald-500 text-black font-bold'
-                        : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
-                    }`}
+                    className={`w-full flex items-center justify-center py-1 px-1 text-sm rounded mb-1 h-10 ${selectedPriceId === 'price_1'
+                      ? 'bg-emerald-500 text-black font-bold'
+                      : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
+                      }`}
                     onClick={() => setSelectedPriceId('price_1')}
                   >
                     $4.20
                   </button>
                   <span className="text-xs text-gray-400">Dank</span>
                 </div>
-                
+
                 <div className="flex flex-col items-center">
                   <button
-                    className={`w-full flex items-center justify-center py-1 px-1 text-sm rounded mb-1 h-10 ${
-                      selectedPriceId === 'price_2'
-                        ? 'bg-emerald-500 text-black font-bold'
-                        : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
-                    }`}
+                    className={`w-full flex items-center justify-center py-1 px-1 text-sm rounded mb-1 h-10 ${selectedPriceId === 'price_2'
+                      ? 'bg-emerald-500 text-black font-bold'
+                      : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
+                      }`}
                     onClick={() => setSelectedPriceId('price_2')}
                   >
                     $6.66
                   </button>
                   <span className="text-xs text-gray-400">Ohh, edgy</span>
                 </div>
-                
+
                 <div className="flex flex-col items-center">
                   <button
-                    className={`w-full flex items-center justify-center py-1 px-1 text-sm rounded mb-1 h-10 ${
-                      selectedPriceId === 'price_3'
-                        ? 'bg-emerald-500 text-black font-bold'
-                        : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
-                    }`}
+                    className={`w-full flex items-center justify-center py-1 px-1 text-sm rounded mb-1 h-10 ${selectedPriceId === 'price_3'
+                      ? 'bg-emerald-500 text-black font-bold'
+                      : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
+                      }`}
                     onClick={() => setSelectedPriceId('price_3')}
                   >
                     $9.11
@@ -411,7 +366,7 @@ export default function HomePage() {
                   <span className="text-xs text-gray-400">Never forget</span>
                 </div>
               </div>
-              
+
               <div className="mt-auto relative">
                 <div className="absolute inset-0 flex items-center justify-center z-10 bg-black bg-opacity-70 rounded-md">
                   <div className="text-center p-2">
@@ -431,11 +386,11 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          
+
           {/* Bundle Offering */}
           <div className="mt-8 text-center md:max-w-lg mx-auto">
             <h3 className="text-xl font-bold mb-4">One less click for conversion rate optimizers</h3>
-            
+
             <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto mb-2">
               <div className="flex flex-col items-center">
                 <button
@@ -454,7 +409,7 @@ export default function HomePage() {
                 <span className="text-xs text-gray-400">Because you can</span>
               </div>
             </div>
-            
+
             <div className="relative max-w-xs mx-auto">
               <div className="absolute inset-0 flex items-center justify-center z-10 bg-black bg-opacity-70 rounded-md">
                 <div className="text-center p-2">
@@ -472,7 +427,7 @@ export default function HomePage() {
                 Bundle this BS
               </Button>
             </div>
-            
+
           </div>
         </div>
       </section>
@@ -483,33 +438,33 @@ export default function HomePage() {
           <h2 className="text-4xl md:text-5xl font-bold mb-8">
             Let's Be <span className="text-emerald-500">Honest</span>
           </h2>
-          
+
           <div className="text-lg md:text-xl space-y-6 text-gray-300">
             <p>
-              You found yourself here after seeing a ridiculous title or quote. 
+              You found yourself here after seeing a ridiculous title or quote.
               But now you realize you've just landed on an absolute gold mine.
             </p>
-            
+
             <p>
-              We both know you could put your meta-prompt engineering 
-              genius to work and vibe code this yourself in 2 hours. 
+              We both know you could put your meta-prompt engineering
+              genius to work and vibe code this yourself in 2 hours.
               Fortunately, I already wasted your time for you.
             </p>
-            
+
             <div className="flex justify-center">
-              <Link 
-                href="/#books" 
+              <Link
+                href="/#books"
                 className="bg-[#ff6b35] hover:bg-[#ff8c42] text-white px-12 py-4 rounded-lg font-bold text-lg transition-all transform hover:scale-105"
               >
                 Buy the BS
               </Link>
-          </div>
+            </div>
 
-            <p>  
+            <p>
               The neurotypicals probably make more money selling courses on how to do this.
               <br />But I'm not.
             </p>
-            
+
             <p>
               <strong>THE DEAL:</strong> You pay. I give you life-changing content (admittedly for better or worse).
               <br />Did Starbucks try this hard for your coin?
@@ -524,7 +479,7 @@ export default function HomePage() {
           <h2 className="text-4xl font-bold text-center mb-12">
             Join <span className="text-emerald-500">Real People</span> Who Can't Believe What They've Just Read
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-[#2d2d2d] p-6 rounded-lg">
               <p className="text-white mb-4">
@@ -532,7 +487,7 @@ export default function HomePage() {
               </p>
               <p className="text-emerald-500 font-bold">- Sarah K., Professional Overthinker</p>
             </div>
-            
+
             {/* Mobile "Buy their BS" button - only visible on mobile */}
             <div className="block md:hidden my-4">
               {/* Commented out until ready
@@ -545,14 +500,14 @@ export default function HomePage() {
               </Button>
               */}
             </div>
-            
+
             <div className="bg-[#2d2d2d] p-6 rounded-lg">
               <p className="text-white mb-4">
                 "Finally, a self-help book that was completely helpless. Refreshingly honest and now I don't feel so alone."
               </p>
               <p className="text-emerald-500 font-bold">- Mike D., Change Agent</p>
             </div>
-            
+
             <div className="bg-[#2d2d2d] p-6 rounded-lg">
               <p className="text-white mb-4">
                 "No purchase has ever made me want to get my life back together more."
@@ -560,7 +515,7 @@ export default function HomePage() {
               <p className="text-emerald-500 font-bold">- Alex R., Parent of 8</p>
             </div>
           </div>
-          
+
           {/* Desktop "Buy their BS" button - only visible on desktop */}
           <div className="hidden md:flex justify-center mt-10">
             {/* Commented out until ready 
@@ -573,27 +528,27 @@ export default function HomePage() {
             </Button>
             */}
           </div>
-          
+
           {/* Fake counter */}
           <div className="text-center mt-12">
             <p className="text-gray-400">
-              <span className="text-emerald-500 font-bold text-2xl">8+ BILLION </span> people haven't taken this opportunity yet! 
+              <span className="text-emerald-500 font-bold text-2xl">8+ BILLION </span> people haven't taken this opportunity yet!
             </p>
           </div>
         </div>
       </section>
 
       {/* Final CTA - updated color */}
-      <section className="py-20 px-4" style={{backgroundColor: '#ff0000'}}>
+      <section className="py-20 px-4" style={{ backgroundColor: '#ff0000' }}>
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-8 text-white">
             STOP OVERTHINKING
           </h2>
-          
+
           <p className="text-xl mb-8 text-white">
             Cancel one of your 12 forgotten subscriptions and buy this BS instead.
           </p>
-          
+
           {/* Commented out until ready
           <Button
             variant="flat"
@@ -604,9 +559,10 @@ export default function HomePage() {
             {loading === 'bundle' ? 'Loading...' : 'BUY THE BS'}
           </Button>
           */}
-          
+
         </div>
       </section>
+      {process.env.NODE_ENV === 'production' && <ConditionalAnalytics />}
     </div>
   );
 }

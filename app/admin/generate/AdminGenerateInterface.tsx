@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import Button from '@/components/ui/Button';
+import Link from 'next/link';
 
 interface ChapterData {
   chapterNumber: number;
@@ -37,6 +38,10 @@ interface ReviewResponse {
     bestLines: string[];
   };
 }
+
+<Link href="/admin/analytics" className="...">
+  📊 View Analytics
+</Link>
 
 export default function AdminGenerateInterface() {
   const [step, setStep] = useState<'start' | 'title' | 'chapters' | 'content'>('start');
@@ -224,7 +229,16 @@ export default function AdminGenerateInterface() {
 
   return (
     <div className="container mx-auto p-8 max-w-4xl text-white">
-      <h1 className="text-3xl font-bold mb-8">BScribe Book Generator</h1>
+      {/* Header with navigation */}
+      <div className="mb-8 flex justify-between items-center">
+        <h1 className="text-3xl font-bold">BScribe Book Generator</h1>
+        <Link
+          href="/admin/analytics"
+          className="bg-emerald-400 hover:bg-emerald-300 text-white px-4 py-2 rounded-lg font-bold transition-colors flex items-center gap-2"
+        >
+          📊 View Analytics
+        </Link>
+      </div>
 
       {step === 'start' && (
         <div className="space-y-4">
@@ -278,16 +292,16 @@ export default function AdminGenerateInterface() {
                     setBookCompleted(true);
                   }
 
-                    // Jump to content generation step
-                    setStep('content');
+                  // Jump to content generation step
+                  setStep('content');
 
-                  } catch (error) {
-                    console.error('Error loading book:', error);
-                    alert('Failed to load book');
-                  }
+                } catch (error) {
+                  console.error('Error loading book:', error);
+                  alert('Failed to load book');
+                }
 
-                  setLoading(false);
-                }}
+                setLoading(false);
+              }}
               variant="slim"
               loading={loading}
             >
