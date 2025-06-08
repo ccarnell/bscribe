@@ -27,6 +27,22 @@ export default function Footer() {
             <p className="font-bold text-emerald-500 mb-3">BOOKS</p>
             <ul className="space-y-2">
               <li>
+                <Link
+                  href="/generate"
+                  className="text-gray-400 hover:text-emerald-500 transition-colors"
+                >
+                  Generate your own BS
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/vote"
+                  className="text-gray-400 hover:text-emerald-500 transition-colors"
+                >
+                  Vote on BS titles
+                </Link>
+              </li>
+              <li>
                 <span className="text-gray-400">
                   No "Back to Top" link.
                   <br />Literally just scroll up.
