@@ -452,7 +452,7 @@ export default function HomePage() {
 
             <div className="flex justify-center">
               <Link
-                href="/#bundle"
+                href="/#books"
                 className="bg-[#ff6b35] hover:bg-[#ff8c42] text-white px-12 py-4 rounded-lg font-bold text-lg transition-all transform hover:scale-105"
               >
                 Buy the BS
@@ -489,14 +489,14 @@ export default function HomePage() {
 
             {/* Mobile "Buy their BS" button - only visible on mobile */}
             <div className="block md:hidden my-4">
-              <Button
-                variant="orange"
-                className="font-bold px-8 py-3 rounded-lg text-lg w-full shadow-lg transform hover:scale-105 transition-all"
-                onClick={() => handleBuyBundle()}
-                disabled={loading === 'bundle'}
-              >
-                {loading === 'bundle' ? 'Loading...' : 'Buy their BS'}
-              </Button>
+              <Link href="/#books">
+                <Button
+                  variant="orange"
+                  className="font-bold px-8 py-3 rounded-lg text-lg w-full shadow-lg transform hover:scale-105 transition-all"
+                >
+                  Buy their BS
+                </Button>
+              </Link>
             </div>
 
             <div className="bg-[#2d2d2d] p-6 rounded-lg">
@@ -516,14 +516,14 @@ export default function HomePage() {
 
           {/* Desktop "Buy their BS" button - only visible on desktop */}
           <div className="hidden md:flex justify-center mt-10">
-            <Button
-              variant="orange"
-              className="font-bold px-10 py-4 rounded-lg text-xl shadow-lg transform hover:scale-105 transition-all"
-              onClick={() => handleBuyBundle()}
-              disabled={loading === 'bundle'}
-            >
-              {loading === 'bundle' ? 'Loading...' : 'Buy their BS'}
-            </Button>
+            <Link href="/#books">
+              <Button
+                variant="orange"
+                className="font-bold px-10 py-4 rounded-lg text-xl shadow-lg transform hover:scale-105 transition-all"
+              >
+                Buy their BS
+              </Button>
+            </Link>
           </div>
 
           {/* Fake counter */}
@@ -546,14 +546,14 @@ export default function HomePage() {
             Cancel one of your 12 forgotten subscriptions and buy this BS instead.
           </p>
 
-          <Button
-            variant="flat"
-            className="font-bold text-2xl px-10 py-4 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 w-full sm:w-auto"
-            onClick={() => handleBuyBundle()}
-            disabled={loading === 'bundle'}
-          >
-            {loading === 'bundle' ? 'Loading...' : 'BUY THE BS'}
-          </Button>
+          <Link href="/#books">
+            <Button
+              variant="flat"
+              className="font-bold text-2xl px-10 py-4 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 w-full sm:w-auto"
+            >
+              BUY THE BS
+            </Button>
+          </Link>
 
         </div>
       </section>
