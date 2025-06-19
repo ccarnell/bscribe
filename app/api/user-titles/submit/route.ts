@@ -5,7 +5,7 @@ import { Database } from '@/types_db';
 // Initialize Supabase admin client
 const supabaseAdmin = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  process.env.SUPABASE_SERVICE_ROLE_KEY_OVERRIDE || ''
 );
 
 export async function POST(request: NextRequest) {
