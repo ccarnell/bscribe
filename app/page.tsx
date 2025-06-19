@@ -386,7 +386,7 @@ export default function HomePage() {
           </div>
 
           {/* Bundle Offering */}
-          <div className="mt-8 text-center md:max-w-lg mx-auto">
+          <div id="bundle" className="mt-8 text-center md:max-w-lg mx-auto">
             <h3 className="text-xl font-bold mb-4">One less click for conversion rate optimizers</h3>
 
             <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto mb-2">
@@ -452,7 +452,7 @@ export default function HomePage() {
 
             <div className="flex justify-center">
               <Link
-                href="/#books"
+                href="/#bundle"
                 className="bg-[#ff6b35] hover:bg-[#ff8c42] text-white px-12 py-4 rounded-lg font-bold text-lg transition-all transform hover:scale-105"
               >
                 Buy the BS

@@ -1,6 +1,6 @@
-// app/api/file-proxy/route.ts - Enhanced debugging
+// app/api/file-proxy/route.ts - Fix for non-public bucket
 import { NextRequest } from 'next/server';
-import { createAdminClient } from '@/utils/supabase/admin';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,66 +11,54 @@ export async function GET(request: NextRequest) {
       return new Response('File path required', { status: 400 });
     }
     
-    console.log(`[FILE-PROXY] Requested path: ${filePath}`);
+    console.log('[FILE-PROXY] Attempting download:', filePath);
     
-    const supabase = createAdminClient();
+    // Create admin client with service role - this bypasses RLS and bucket permissions
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     
-    // First, let's verify the file exists
-    const { data: listData, error: listError } = await supabase.storage
-      .from('books')
-      .list(filePath.split('/')[0], {
-        limit: 100,
-        offset: 0
-      });
-    
-    console.log('[FILE-PROXY] Files in directory:', listData?.map(f => f.name));
-    
-    // Try to create a public URL instead of signed URL
-    const { data: publicUrlData } = supabase.storage
-      .from('books')
-      .getPublicUrl(filePath);
-    
-    console.log('[FILE-PROXY] Public URL:', publicUrlData?.publicUrl);
-    
-    // Try direct download as admin
-    const { data, error } = await supabase.storage
+    // Download from private bucket using service role
+    const { data, error } = await supabaseAdmin.storage
       .from('books')
       .download(filePath);
     
     if (error) {
       console.error('[FILE-PROXY] Download error:', error);
-      console.error('[FILE-PROXY] Error details:', JSON.stringify(error, null, 2));
-      
-      return new Response(JSON.stringify({
-        error: 'Download failed',
+      return new Response(JSON.stringify({ 
+        error: 'Download failed', 
         details: error.message,
-        path: filePath,
-        bucketFiles: listData?.map(f => f.name)
-      }), {
+        path: filePath
+      }), { 
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
     }
     
     if (!data) {
-      return new Response('No data returned', { status: 404 });
+      return new Response('File not found', { status: 404 });
     }
     
-    const filename = filePath.split('/').pop() || 'download';
+    // Get the filename from the path
+    const filename = filePath.split('/').pop() || 'download.pdf';
     
+    // Return the file as a response
     return new Response(data, {
+      status: 200,
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
     });
     
   } catch (error) {
     console.error('[FILE-PROXY] Unexpected error:', error);
-    return new Response(JSON.stringify({
+    return new Response(JSON.stringify({ 
       error: 'Server error',
       message: error instanceof Error ? error.message : 'Unknown error'
-    }), {
+    }), { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });

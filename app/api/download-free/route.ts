@@ -2,6 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
+const MAX_DOWNLOADS_PER_IP = 25; // Max downloads per IP per hour
+
+// In-memory store for rate limiting (in production, use Redis or database)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
 // Map of free book IDs to their file paths and metadata
 // Structure is designed to be scalable for future free books
 interface FreeBookInfo {
@@ -18,6 +25,45 @@ const FREE_BOOK_MAP: { [key: string]: FreeBookInfo } = {
 
 export async function POST(request: NextRequest) {
   try {
+    // Get client IP for rate limiting
+    const clientIP = request.headers.get('x-forwarded-for') || 
+                    request.headers.get('x-real-ip') || 
+                    'unknown';
+    
+    // Check rate limiting
+    const now = Date.now();
+    const rateLimitKey = `free_download_${clientIP}`;
+    const rateLimitData = rateLimitStore.get(rateLimitKey);
+    
+    if (rateLimitData) {
+      if (now < rateLimitData.resetTime) {
+        if (rateLimitData.count >= MAX_DOWNLOADS_PER_IP) {
+          console.log(`Rate limit exceeded for IP: ${clientIP}`);
+          return NextResponse.json(
+            { error: 'Too many download attempts. Please try again later.' }, 
+            { status: 429 }
+          );
+        }
+        // Increment count
+        rateLimitStore.set(rateLimitKey, {
+          count: rateLimitData.count + 1,
+          resetTime: rateLimitData.resetTime
+        });
+      } else {
+        // Reset window
+        rateLimitStore.set(rateLimitKey, {
+          count: 1,
+          resetTime: now + RATE_LIMIT_WINDOW
+        });
+      }
+    } else {
+      // First request from this IP
+      rateLimitStore.set(rateLimitKey, {
+        count: 1,
+        resetTime: now + RATE_LIMIT_WINDOW
+      });
+    }
+
     // Parse the request body to get the bookId
     const body = await request.json();
     const { bookId } = body;
