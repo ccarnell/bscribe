@@ -1,14 +1,15 @@
 import Stripe from 'stripe';
 
+// Use test key in development, live key in production
+const stripeSecretKey = process.env.NODE_ENV === 'production' 
+  ? (process.env.STRIPE_SECRET_KEY_LIVE || process.env.STRIPE_SECRET_KEY || '')
+  : (process.env.STRIPE_SECRET_KEY || '');
+
 export const stripe = new Stripe(
-  process.env.STRIPE_SECRET_KEY_LIVE ?? process.env.STRIPE_SECRET_KEY ?? '',
+  stripeSecretKey,
   {
-    // https://github.com/stripe/stripe-node#configuration
-    // https://stripe.com/docs/api/versioning
     // @ts-ignore
     apiVersion: null,
-    // Register this as an official Stripe plugin.
-    // https://stripe.com/docs/building-plugins#setappinfo
     appInfo: {
       name: 'Next.js Subscription Starter',
       version: '0.0.0',

@@ -1,3 +1,4 @@
+// app/api/file-proxy/route.ts - Enhanced debugging
 import { NextRequest } from 'next/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 
@@ -10,54 +11,62 @@ export async function GET(request: NextRequest) {
       return new Response('File path required', { status: 400 });
     }
     
-    console.log(`[FILE-PROXY] Requested: ${filePath}`);
+    console.log(`[FILE-PROXY] Requested path: ${filePath}`);
     
     const supabase = createAdminClient();
     
-    // Create a signed URL (5 minutes expiry)
-    const { data: urlData, error: urlError } = await supabase.storage
+    // First, let's verify the file exists
+    const { data: listData, error: listError } = await supabase.storage
       .from('books')
-      .createSignedUrl(filePath, 300);
+      .list(filePath.split('/')[0], {
+        limit: 100,
+        offset: 0
+      });
     
-    if (urlError || !urlData?.signedUrl) {
-      console.error('[FILE-PROXY] Signed URL error:', urlError);
+    console.log('[FILE-PROXY] Files in directory:', listData?.map(f => f.name));
+    
+    // Try to create a public URL instead of signed URL
+    const { data: publicUrlData } = supabase.storage
+      .from('books')
+      .getPublicUrl(filePath);
+    
+    console.log('[FILE-PROXY] Public URL:', publicUrlData?.publicUrl);
+    
+    // Try direct download as admin
+    const { data, error } = await supabase.storage
+      .from('books')
+      .download(filePath);
+    
+    if (error) {
+      console.error('[FILE-PROXY] Download error:', error);
+      console.error('[FILE-PROXY] Error details:', JSON.stringify(error, null, 2));
+      
       return new Response(JSON.stringify({
-        error: 'Failed to create download URL',
-        details: urlError?.message || 'Unknown error',
-        path: filePath
+        error: 'Download failed',
+        details: error.message,
+        path: filePath,
+        bucketFiles: listData?.map(f => f.name)
       }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
     }
     
-    // Fetch the file using the signed URL
-    const response = await fetch(urlData.signedUrl);
-    
-    if (!response.ok) {
-      return new Response(JSON.stringify({
-        error: 'Failed to fetch file',
-        status: response.status,
-        statusText: response.statusText
-      }), {
-        status: response.status,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    if (!data) {
+      return new Response('No data returned', { status: 404 });
     }
     
-    const blob = await response.blob();
     const filename = filePath.split('/').pop() || 'download';
     
-    return new Response(blob, {
+    return new Response(data, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'private, max-age=3600'
       },
     });
     
   } catch (error) {
-    console.error('[FILE-PROXY] Error:', error);
+    console.error('[FILE-PROXY] Unexpected error:', error);
     return new Response(JSON.stringify({
       error: 'Server error',
       message: error instanceof Error ? error.message : 'Unknown error'
