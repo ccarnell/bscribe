@@ -1,65 +1,83 @@
-// app/api/file-proxy/route.ts - Secure proxy to download files from Supabase Storage
+// app/api/file-proxy/route.ts
 import { NextRequest } from 'next/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get file path from query parameters
     const searchParams = new URL(request.url).searchParams;
     const filePath = searchParams.get('path');
+    
+    console.log('[FILE-PROXY] Environment check:', {
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      serviceRoleKeyPrefix: process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 10)
+    });
     
     if (!filePath) {
       return new Response('File path required', { status: 400 });
     }
     
-    console.log(`File proxy request for: ${filePath}`);
+    console.log(`[FILE-PROXY] Requested path: ${filePath}`);
     
-    // Get admin client to bypass permissions
     const supabase = createAdminClient();
     
-    // Determine content type based on file extension
-    const fileExtension = filePath.split('.').pop()?.toLowerCase();
-    let contentType = 'application/octet-stream'; // Default
+    // First, let's verify we can access the bucket
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    console.log('[FILE-PROXY] Buckets:', buckets?.map(b => b.name), 'Error:', bucketsError);
     
-    if (fileExtension === 'pdf') {
-      contentType = 'application/pdf';
-    } else if (['jpg', 'jpeg'].includes(fileExtension || '')) {
-      contentType = 'image/jpeg';
-    } else if (fileExtension === 'png') {
-      contentType = 'image/png';
-    }
+    // Try to list files in the directory
+    const directory = filePath.split('/')[0]; // 'free' or 'individual'
+    const { data: files, error: listError } = await supabase.storage
+      .from('books')
+      .list(directory);
     
-    // Get filename for the download
-    const filename = filePath.split('/').pop() || 'download';
+    console.log('[FILE-PROXY] Files in directory:', files?.map(f => f.name), 'Error:', listError);
     
-    // Try to download the file
+    // Now try the download
     const { data, error } = await supabase.storage
-      .from('books') // Use the correct bucket name
+      .from('books')
       .download(filePath);
     
+    console.log('[FILE-PROXY] Download result:', {
+      hasData: !!data,
+      dataSize: data?.size,
+      error: error
+    });
+    
     if (error || !data) {
-      console.error(`File download failed: ${error?.message}`);
-      return new Response(`File download failed: ${error?.message}`, { 
+      return new Response(JSON.stringify({ 
+        error: 'File download failed',
+        details: {
+          message: error?.message,
+          path: filePath,
+          bucket: 'books',
+          directory: directory,
+          filesInDirectory: files?.map(f => f.name)
+        }
+      }), { 
         status: 404,
-        headers: { 'Content-Type': 'text/plain' }
+        headers: { 'Content-Type': 'application/json' }
       });
     }
     
-    // Log successful download
-    console.log(`Successfully downloaded: ${filePath}`);
+    const filename = filePath.split('/').pop() || 'download';
     
-    // Return the file with appropriate headers
     return new Response(data, {
       headers: {
-        'Content-Type': contentType,
+        'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'private, max-age=3600'
       },
     });
   } catch (error) {
-    console.error('File proxy error:', error);
-    return new Response(`Server error: ${error instanceof Error ? error.message : 'Unknown error'}`, { 
+    console.error('[FILE-PROXY] Unexpected error:', error);
+    return new Response(JSON.stringify({ 
+      error: 'Server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    }), { 
       status: 500,
-      headers: { 'Content-Type': 'text/plain' }
+      headers: { 'Content-Type': 'application/json' }
     });
   }
 }
