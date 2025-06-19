@@ -11,14 +11,9 @@ interface FreeBookInfo {
 
 const FREE_BOOK_MAP: { [key: string]: FreeBookInfo } = {
   "prod_free_book_1": {
-    path: "free/free-ebook-1-i-disrupted-my-own-childhood-trauma-using-agile-methodology.pdf",
+    path: "free/free-ebook-1-v2-childhood-trauma-agile.pdf",
     title: "I Disrupted My Own Childhood Trauma using Agile Methodology"
   }
-  // Easy to add more free books in the future:
-  // "prod_free_book_2": {
-  //   path: "free/another-free-book.pdf",
-  //   title: "Another Free Book Title"
-  // }
 };
 
 export async function POST(request: NextRequest) {

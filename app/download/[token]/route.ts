@@ -2,13 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
 const PRODUCT_TO_FILE_MAP: { [key: string]: string } = {
-  'prod_book_1': 'individual/book-1-seven-secrets.pdf',
-  'prod_book_2': 'individual/book-2-navy-seal-ceo.pdf',
-  'prod_book_3': 'individual/book-3-broke-to-billionaire.pdf',
-  'prod_book_4': 'individual/book-4-deep-learning.pdf',
-  'prod_book_5': 'individual/book-5-personal-brand.pdf',
-  'prod_book_6': 'individual/book-6-zero-shot.pdf',
-  'prod_bundle': 'bundles/bscribe-complete-bundle.pdf'
+  'prod_paid_book_1': 'individual/book-1-millionaire-mindset-avocado-toast.pdf',
+  'prod_bundle': 'individual/book-1-millionaire-mindset-avocado-toast.pdf'
 };
 
 export async function GET(
