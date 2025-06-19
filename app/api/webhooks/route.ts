@@ -8,7 +8,17 @@ import {
   deletePriceRecord
 } from '@/utils/supabase/admin';
 
+function logPaymentEvent(event: string, data: any) {
+  console.log(JSON.stringify({
+    timestamp: new Date().toISOString(),
+    event: `stripe_${event}`,
+    ...data
+  }));
+}
+
 const relevantEvents = new Set([
+  'payment_intent.succeeded',
+  'payment_intent.payment_failed',
   'product.created',
   'product.updated',
   'product.deleted',
@@ -53,6 +63,23 @@ export async function POST(req: Request) {
           break;
         case 'product.deleted':
           await deleteProductRecord(event.data.object as Stripe.Product);
+          break;
+        case 'payment_intent.succeeded':
+          const paymentIntent = event.data.object as Stripe.PaymentIntent;
+          logPaymentEvent('payment_success', {
+            amount: paymentIntent.amount / 100, // Convert cents to dollars
+            currency: paymentIntent.currency,
+            customer: paymentIntent.customer,
+            metadata: paymentIntent.metadata
+          });
+          break;
+
+        case 'payment_intent.payment_failed':
+          const failedPaymentIntent = event.data.object as Stripe.PaymentIntent;
+          logPaymentEvent('payment_failed', {
+            amount: failedPaymentIntent.amount / 100,
+            error: failedPaymentIntent.last_payment_error?.message
+          });
           break;
         case 'customer.subscription.created':
         case 'customer.subscription.updated':
