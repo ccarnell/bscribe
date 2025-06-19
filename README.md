@@ -262,6 +262,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-*Built with love, sarcasm, and an unhealthy obsession with self-help book parodies.*
+*Built with love, sarcasm, and an unhealthy obsession with satire.*
 
 **Disclaimer**: This is satirical content for entertainment purposes. BScribe.ai is not responsible for any existential crises, improved self-awareness, or accidental life improvements that may result from reading our books.
