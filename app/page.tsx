@@ -52,6 +52,7 @@ const paidBook = {
 export default function HomePage() {
   const [loading, setLoading] = useState<string | null>(null);
   const [selectedPriceId, setSelectedPriceId] = useState<string>('price_3');
+  const [selectedBundlePriceId, setSelectedBundlePriceId] = useState<string>('bundle_1');
 
   // Get selected price tier for paid book
   const getSelectedPrice = () => {
@@ -172,10 +173,13 @@ export default function HomePage() {
     }
   };
 
-  const handleBuyBundle = async (priceInCents = 1337) => {
+  const handleBuyBundle = async () => {
     setLoading('bundle');
 
     try {
+      // Get price based on selected bundle price
+      const priceInCents = selectedBundlePriceId === 'bundle_1' ? 1337 : 9001;
+      
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: {
@@ -184,6 +188,7 @@ export default function HomePage() {
         body: JSON.stringify({
           priceId: priceInCents, // in cents
           bookTitle: 'Complete Bullsh*t Bundle - All Books',
+          productId: 'prod_bundle',
         }),
       });
 
@@ -217,7 +222,7 @@ export default function HomePage() {
   return (
     <div className="bg-black text-white">
       {/* Hero Section with Two Book Layout */}
-      <section className="min-h-screen flex items-center justify-center px-4 py-10">
+      <section id="books" className="min-h-screen flex items-center justify-center px-4 py-10">
         <div className="max-w-6xl mx-auto">
           {/* Main Headline */}
           <h1 className="text-4xl md:text-7xl font-black mb-6 leading-tight text-center">
@@ -247,7 +252,7 @@ export default function HomePage() {
                 {freeBook.title}
               </h2>
 
-              <p className="text-xs text-gray-400 mb-2 text-left">7 Pages | Download free ebook</p>
+              <p className="text-xs text-gray-400 mb-2 text-left">7 Pages | Download free digital book</p>
 
               <div className="flex justify-center mb-3">
                 <Image
@@ -304,7 +309,7 @@ export default function HomePage() {
                 {paidBook.title}
               </h2>
 
-              <p className="text-xs text-gray-400 mb-2 text-left">48 Pages | Premium ebook</p>
+              <p className="text-xs text-gray-400 mb-2 text-left">19 Pages | Purchase unhinged digital book</p>
 
               <div className="flex justify-center mb-3">
                 <Image
@@ -387,7 +392,11 @@ export default function HomePage() {
             <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto mb-2">
               <div className="flex flex-col items-center">
                 <button
-                  className="w-full flex items-center justify-center py-1 px-1 text-sm rounded bg-[#2d2d2d] text-white hover:bg-[#ff6b35] mb-1 h-10"
+                  className={`w-full flex items-center justify-center py-1 px-1 text-sm rounded mb-1 h-10 ${selectedBundlePriceId === 'bundle_1'
+                    ? 'bg-emerald-500 text-black font-bold'
+                    : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
+                    }`}
+                  onClick={() => setSelectedBundlePriceId('bundle_1')}
                 >
                   $13.37
                 </button>
@@ -395,7 +404,11 @@ export default function HomePage() {
               </div>
               <div className="flex flex-col items-center">
                 <button
-                  className="w-full flex items-center justify-center py-1 px-1 text-sm rounded bg-[#2d2d2d] text-white hover:bg-[#ff6b35] mb-1 h-10"
+                  className={`w-full flex items-center justify-center py-1 px-1 text-sm rounded mb-1 h-10 ${selectedBundlePriceId === 'bundle_2'
+                    ? 'bg-emerald-500 text-black font-bold'
+                    : 'bg-[#2d2d2d] text-white hover:bg-[#ff6b35]'
+                    }`}
+                  onClick={() => setSelectedBundlePriceId('bundle_2')}
                 >
                   $90.01
                 </button>
@@ -407,7 +420,7 @@ export default function HomePage() {
               <Button
                 variant="orange"
                 className="font-bold px-4 py-2 mx-auto max-w-xs w-full text-lg shadow-lg hover:scale-105 transition-all"
-                onClick={() => handleBuyBundle(1337)}
+                onClick={() => handleBuyBundle()}
                 disabled={loading === 'bundle'}
               >
                 {loading === 'bundle' ? 'Loading...' : 'Bundle this BS'}
@@ -506,7 +519,7 @@ export default function HomePage() {
             <Button
               variant="orange"
               className="font-bold px-10 py-4 rounded-lg text-xl shadow-lg transform hover:scale-105 transition-all"
-              onClick={() => handleBuyBundle(1337)}
+              onClick={() => handleBuyBundle()}
               disabled={loading === 'bundle'}
             >
               {loading === 'bundle' ? 'Loading...' : 'Buy their BS'}
@@ -536,7 +549,7 @@ export default function HomePage() {
           <Button
             variant="flat"
             className="font-bold text-2xl px-10 py-4 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 w-full sm:w-auto"
-            onClick={() => handleBuyBundle(9001)}
+            onClick={() => handleBuyBundle()}
             disabled={loading === 'bundle'}
           >
             {loading === 'bundle' ? 'Loading...' : 'BUY THE BS'}
