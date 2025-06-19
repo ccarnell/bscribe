@@ -492,7 +492,7 @@ export default function HomePage() {
               <Button
                 variant="orange"
                 className="font-bold px-8 py-3 rounded-lg text-lg w-full shadow-lg transform hover:scale-105 transition-all"
-                onClick={() => handleBuyBundle(1337)}
+                onClick={() => handleBuyBundle()}
                 disabled={loading === 'bundle'}
               >
                 {loading === 'bundle' ? 'Loading...' : 'Buy their BS'}

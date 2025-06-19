@@ -88,8 +88,40 @@ export async function GET(
       );
     }
 
-    // Update download count
+    // Check 24-hour expiration
+    const EXPIRY_HOURS = 24;
+    const MAX_DOWNLOADS = 5;
+
+    const purchaseDate = new Date(purchase.purchased_at);
+    const expiryDate = new Date(purchaseDate.getTime() + (EXPIRY_HOURS * 60 * 60 * 1000));
+
+    if (new Date() > expiryDate) {
+      return new Response(
+        `<!DOCTYPE html>
+        <html><body style="background: #000; color: #fff; font-family: sans-serif; text-align: center; padding: 50px;">
+          <h1 style="color: #ef4444;">Download Expired</h1>
+          <p>Your download link expired after 24 hours.</p>
+          <p>Contact support@bscribe.ai for assistance.</p>
+        </body></html>`,
+        { status: 410, headers: { 'Content-Type': 'text/html' } }
+      );
+    }
+
+    // Check download count
     const currentCount = purchase.download_count || 0;
+    if (currentCount >= MAX_DOWNLOADS) {
+      return new Response(
+        `<!DOCTYPE html>
+        <html><body style="background: #000; color: #fff; font-family: sans-serif; text-align: center; padding: 50px;">
+          <h1 style="color: #ef4444;">Download Limit Reached</h1>
+          <p>Maximum downloads (${MAX_DOWNLOADS}) exceeded.</p>
+          <p>Contact support@bscribe.ai if you need additional downloads.</p>
+        </body></html>`,
+        { status: 403, headers: { 'Content-Type': 'text/html' } }
+      );
+    }
+
+    // Update download count
     await supabase
       .from('purchases')
       .update({
