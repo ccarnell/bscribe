@@ -38,7 +38,7 @@ const paidBook = {
   productId: 'prod_paid_book_1',
   title: "The Millionaire Mindset For People Who Can't Afford Avocado Toast",
   subtitle: "Visualize Your Way to Wealth While Ignoring Basic Economics and Your Credit Card",
-  coverUrl: "/the-millionare-mindset-book-cover-image.png",
+  coverUrl: "/the-millionaire-mindset-book-cover-image.png",
   originalPrice: 69.00,
   priceTiers: [
     { id: 'price_1', label: '$4.20', priceInCents: 420 },
@@ -367,21 +367,14 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="mt-auto relative">
-                <div className="absolute inset-0 flex items-center justify-center z-10 bg-black bg-opacity-70 rounded-md">
-                  <div className="text-center p-2">
-                    <div className="border-2 border-yellow-400 border-dashed p-2 bg-black bg-opacity-90 rounded">
-                      <p className="text-yellow-400 font-bold text-sm">🚧 UNDER CONSTRUCTION 🚧</p>
-                      <p className="text-gray-300 text-xs mt-1">Coming soon!</p>
-                    </div>
-                  </div>
-                </div>
+              <div className="mt-auto">
                 <Button
                   variant="orange"
-                  className="font-bold px-4 py-2 opacity-30 w-full text-lg shadow-lg cursor-not-allowed"
-                  disabled={true}
+                  className="font-bold px-4 py-2 w-full text-lg shadow-lg hover:scale-105 transition-all"
+                  onClick={() => handleBuyPaidBook()}
+                  disabled={loading === 'paid'}
                 >
-                  Buy this BS
+                  {loading === 'paid' ? 'Loading...' : 'Buy this BS'}
                 </Button>
               </div>
             </div>
@@ -410,21 +403,14 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="relative max-w-xs mx-auto">
-              <div className="absolute inset-0 flex items-center justify-center z-10 bg-black bg-opacity-70 rounded-md">
-                <div className="text-center p-2">
-                  <div className="border-2 border-yellow-400 border-dashed p-2 bg-black bg-opacity-90 rounded">
-                    <p className="text-yellow-400 font-bold text-sm">🚧 UNDER CONSTRUCTION 🚧</p>
-                    <p className="text-gray-300 text-xs mt-1">Coming soon!</p>
-                  </div>
-                </div>
-              </div>
+            <div className="max-w-xs mx-auto">
               <Button
                 variant="orange"
-                className="font-bold px-4 py-2 mx-auto max-w-xs w-full text-lg shadow-lg opacity-30 cursor-not-allowed"
-                disabled={true}
+                className="font-bold px-4 py-2 mx-auto max-w-xs w-full text-lg shadow-lg hover:scale-105 transition-all"
+                onClick={() => handleBuyBundle(1337)}
+                disabled={loading === 'bundle'}
               >
-                Bundle this BS
+                {loading === 'bundle' ? 'Loading...' : 'Bundle this BS'}
               </Button>
             </div>
 
@@ -490,15 +476,14 @@ export default function HomePage() {
 
             {/* Mobile "Buy their BS" button - only visible on mobile */}
             <div className="block md:hidden my-4">
-              {/* Commented out until ready
               <Button
                 variant="orange"
                 className="font-bold px-8 py-3 rounded-lg text-lg w-full shadow-lg transform hover:scale-105 transition-all"
-                onClick={() => handleBuyBundle()}
+                onClick={() => handleBuyBundle(1337)}
+                disabled={loading === 'bundle'}
               >
-                Buy their BS
+                {loading === 'bundle' ? 'Loading...' : 'Buy their BS'}
               </Button>
-              */}
             </div>
 
             <div className="bg-[#2d2d2d] p-6 rounded-lg">
@@ -518,15 +503,14 @@ export default function HomePage() {
 
           {/* Desktop "Buy their BS" button - only visible on desktop */}
           <div className="hidden md:flex justify-center mt-10">
-            {/* Commented out until ready 
             <Button
               variant="orange"
               className="font-bold px-10 py-4 rounded-lg text-xl shadow-lg transform hover:scale-105 transition-all"
-              onClick={() => handleBuyBundle()}
+              onClick={() => handleBuyBundle(1337)}
+              disabled={loading === 'bundle'}
             >
-              Buy their BS
+              {loading === 'bundle' ? 'Loading...' : 'Buy their BS'}
             </Button>
-            */}
           </div>
 
           {/* Fake counter */}
@@ -549,16 +533,14 @@ export default function HomePage() {
             Cancel one of your 12 forgotten subscriptions and buy this BS instead.
           </p>
 
-          {/* Commented out until ready
           <Button
             variant="flat"
             className="font-bold text-2xl px-10 py-4 rounded-lg shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 w-full sm:w-auto"
-            onClick={() => handleBuyBundle()}
+            onClick={() => handleBuyBundle(9001)}
             disabled={loading === 'bundle'}
           >
             {loading === 'bundle' ? 'Loading...' : 'BUY THE BS'}
           </Button>
-          */}
 
         </div>
       </section>
