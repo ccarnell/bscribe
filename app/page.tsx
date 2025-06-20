@@ -45,7 +45,7 @@ const paidBook = {
     { id: 'price_2', label: '$6.66', priceInCents: 666 },
     { id: 'price_3', label: '$9.11', priceInCents: 911 },
     { id: 'price_4', label: '$13.37', priceInCents: 1337 },
-    { id: 'price_5', label: '$90.01', priceInCents: 9001, tooltip: "Any amount paid over $69.00 will be donated to the National Suicide Prevention Lifeline" }
+    { id: 'price_5', label: '$90.01', priceInCents: 9001},
   ]
 };
 
@@ -119,44 +119,29 @@ export default function HomePage() {
     setLoading('paid');
 
     try {
-      const selectedPrice = getSelectedPrice();
+      // Map selectedPriceId to actual Stripe price IDs
+      let stripePrice = '';
+      
+      switch (selectedPriceId) {
+        case 'price_1': // $4.20
+          stripePrice = 'price_1RbncaQ4YMiPgiVCZCEpkMZz';
+          break;
+        case 'price_2': // $6.66
+          stripePrice = 'price_1RbndXQ4YMiPgiVCkDZvB3IP';
+          break;
+        case 'price_3': // $9.11
+          stripePrice = 'price_1RbnegQ4YMiPgiVC0lqM3iIT';
+          break;
+        default:
+          stripePrice = 'price_1RbnegQ4YMiPgiVC0lqM3iIT'; // Default to $9.11
+      }
 
       // Create checkout session
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          priceId: selectedPrice.priceInCents,
-          bookTitle: paidBook.title,
-          productId: paidBook.productId
-        }),
-      });
-
-      const { sessionId } = await response.json();
-
-      // Redirect to Stripe Checkout
-      const stripe = await getStripe();
-      await stripe?.redirectToCheckout({ sessionId });
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Something went wrong. Please try again.');
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const handleBuyBook = async (book: any) => {
-    setLoading(book.id);
-
-    try {
-      // Create checkout session
-      const response = await fetch('/api/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          priceId: book.priceInCents,
-          bookTitle: book.title,
-          productId: book.productId
+          priceId: stripePrice,
         }),
       });
 
@@ -177,8 +162,19 @@ export default function HomePage() {
     setLoading('bundle');
 
     try {
-      // Get price based on selected bundle price
-      const priceInCents = selectedBundlePriceId === 'bundle_1' ? 1337 : 9001;
+      // Map selectedBundlePriceId to actual Stripe price IDs
+      let stripePrice = '';
+      
+      switch (selectedBundlePriceId) {
+        case 'bundle_1': // $13.37
+          stripePrice = 'price_1Rbnl9Q4YMiPgiVCYDyjHT79';
+          break;
+        case 'bundle_2': // $90.01
+          stripePrice = 'price_1RbnlMQ4YMiPgiVCSSqCt9o6';
+          break;
+        default:
+          stripePrice = 'price_1Rbnl9Q4YMiPgiVCYDyjHT79'; // Default to $13.37
+      }
       
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
@@ -186,9 +182,7 @@ export default function HomePage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          priceId: priceInCents, // in cents
-          bookTitle: 'Complete Bullsh*t Bundle - All Books',
-          productId: 'prod_bundle',
+          priceId: stripePrice,
         }),
       });
 

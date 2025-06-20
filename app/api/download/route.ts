@@ -1,53 +1,73 @@
-// /app/api/download/route.ts
+// /app/api/download-purchase/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/utils/stripe/config';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY_OVERRIDE!
+);
 
 export async function POST(request: NextRequest) {
   try {
     const { sessionId } = await request.json();
-    
-    if (!sessionId) {
-      return NextResponse.json({ error: 'No session ID' }, { status: 400 });
-    }
 
+    // Get session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     
-    if (session.payment_status !== 'paid') {
-      return NextResponse.json({ error: 'Not paid' }, { status: 400 });
+    // Find purchase record
+    const { data: purchase, error } = await supabaseAdmin
+      .from('purchases')
+      .select('*')
+      .eq('stripe_payment_intent_id', session.payment_intent)
+      .single();
+
+    if (error || !purchase) {
+      return NextResponse.json({ error: 'Purchase not found' }, { status: 404 });
     }
 
-    // Simple mapping based on metadata
-    const productId = session.metadata?.productId;
+    const downloadUrls = [];
     
-    if (productId === 'prod_paid_book_1') {
-      return NextResponse.json({
-        success: true,
-        isBundle: false,
-        downloadUrl: `/api/file-proxy?path=${encodeURIComponent('individual/book-1-millionaire-mindset-avocado-toast.pdf')}`,
-        bookTitle: 'The Millionaire Mindset',
-      });
-    } else if (productId === 'prod_bundle') {
-      return NextResponse.json({
-        success: true,
-        isBundle: true,
-        bookTitle: 'Bundle of BS - First Dump',
-        downloads: [
-          {
-            title: 'I Disrupted My Own Childhood Trauma',
-            downloadUrl: `/api/file-proxy?path=${encodeURIComponent('free/free-ebook-1-v2-childhood-trauma-agile.pdf')}`
-          },
-          {
-            title: 'The Millionaire Mindset',
-            downloadUrl: `/api/file-proxy?path=${encodeURIComponent('individual/book-1-millionaire-mindset-avocado-toast.pdf')}`
-          }
-        ],
-      });
+    if (purchase.download_type === 'individual') {
+      // Single book download
+      const { data } = await supabaseAdmin.storage
+        .from('books')
+        .createSignedUrl('individual/book-1-millionaire-mindset-acovado-toast.pdf', 3600);
+      
+      if (data?.signedUrl) {
+        downloadUrls.push(data.signedUrl);
+      }
+    } 
+    else if (purchase.download_type === 'bundle') {
+      // Bundle - get both files
+      // Get the free book first
+      const { data: files } = await supabaseAdmin.storage
+        .from('books')
+        .list('free');
+      
+      if (files && files.length > 0) {
+        const { data: freeUrl } = await supabaseAdmin.storage
+          .from('books')
+          .createSignedUrl(`free/${files[0].name}`, 3600);
+        
+        if (freeUrl?.signedUrl) {
+          downloadUrls.push(freeUrl.signedUrl);
+        }
+      }
+      
+      // Get the individual book
+      const { data: individualUrl } = await supabaseAdmin.storage
+        .from('books')
+        .createSignedUrl('individual/book-1-millionaire-mindset-acovado-toast.pdf', 3600);
+      
+      if (individualUrl?.signedUrl) {
+        downloadUrls.push(individualUrl.signedUrl);
+      }
     }
-    
-    return NextResponse.json({ error: 'Unknown product' }, { status: 404 });
 
+    return NextResponse.json({ downloadUrls });
   } catch (error) {
     console.error('Download error:', error);
-    return NextResponse.json({ error: 'Failed to process' }, { status: 500 });
+    return NextResponse.json({ error: 'Download failed' }, { status: 500 });
   }
 }

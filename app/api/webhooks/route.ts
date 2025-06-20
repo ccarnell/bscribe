@@ -1,5 +1,7 @@
 import Stripe from 'stripe';
 import { stripe } from '@/utils/stripe/config';
+import crypto from 'crypto';
+import { createClient } from '@supabase/supabase-js';
 import {
   upsertProductRecord,
   upsertPriceRecord,
@@ -7,6 +9,12 @@ import {
   deleteProductRecord,
   deletePriceRecord
 } from '@/utils/supabase/admin';
+
+// Add supabaseAdmin setup
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY_OVERRIDE!
+);
 
 function logPaymentEvent(event: string, data: any) {
   console.log(JSON.stringify({
@@ -67,7 +75,7 @@ export async function POST(req: Request) {
         case 'payment_intent.succeeded':
           const paymentIntent = event.data.object as Stripe.PaymentIntent;
           logPaymentEvent('payment_success', {
-            amount: paymentIntent.amount / 100, // Convert cents to dollars
+            amount: paymentIntent.amount / 100,
             currency: paymentIntent.currency,
             customer: paymentIntent.customer,
             metadata: paymentIntent.metadata
@@ -100,6 +108,51 @@ export async function POST(req: Request) {
               checkoutSession.customer as string,
               true
             );
+          }
+          
+          // Handle one-time purchases
+          if (checkoutSession.mode === 'payment') {
+            // Get the line items to find the price ID
+            const lineItems = await stripe.checkout.sessions.listLineItems(checkoutSession.id);
+            const priceId = lineItems.data[0]?.price?.id;
+            
+            // Map price IDs to download types
+            let downloadType = '';
+            let productId = '';
+            
+            switch (priceId) {
+              case 'price_1RbncaQ4YMiPgiVCZCEpkMZz': // $4.20
+              case 'price_1RbndXQ4YMiPgiVCkDZvB3IP': // $6.66  
+              case 'price_1RbnegQ4YMiPgiVC0lqM3iIT': // $9.11
+                downloadType = 'individual';
+                productId = 'prod_SWrLr7RbHWgihN';
+                break;
+              case 'price_1Rbnl9Q4YMiPgiVCYDyjHT79': // $13.37
+              case 'price_1RbnlMQ4YMiPgiVCSSqCt9o6': // $90.01
+                downloadType = 'bundle';
+                productId = 'prod_SWrUikM8AGR3kP';
+                break;
+            }
+            
+            const accessToken = crypto.randomBytes(32).toString('hex');
+            
+            const { error } = await supabaseAdmin
+              .from('purchases')
+              .insert({
+                buyer_id: checkoutSession.customer,
+                product_id: productId,
+                stripe_payment_intent_id: checkoutSession.payment_intent,
+                amount_cents: checkoutSession.amount_total,
+                status: 'succeeded',
+                access_token: accessToken,
+                download_type: downloadType
+              });
+
+            if (error) {
+              console.error('Failed to create purchase record:', error);
+            } else {
+              console.log(`✅ Purchase record created: ${downloadType} for ${checkoutSession.customer}`);
+            }
           }
           break;
         default:
