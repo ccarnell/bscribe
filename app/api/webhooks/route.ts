@@ -10,7 +10,7 @@ import {
   deletePriceRecord
 } from '@/utils/supabase/admin';
 
-// Add supabaseAdmin setup
+// SupabaseAdmin setup
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY_OVERRIDE!
