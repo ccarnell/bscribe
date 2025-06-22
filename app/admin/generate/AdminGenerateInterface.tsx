@@ -1,9 +1,10 @@
 // app/admin/generate/AdminGenerateInterface.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
+import { createClient } from '@/utils/supabase/client';
 
 interface ChapterData {
   chapterNumber: number;
@@ -51,6 +52,34 @@ export default function AdminGenerateInterface() {
   const [completedChapters, setCompletedChapters] = useState<ChapterData[]>([]);
   const [bookCompleted, setBookCompleted] = useState(false);
   const [bookId, setBookId] = useState<string>('');
+  const [useExistingTitle, setUseExistingTitle] = useState(false);
+  const [availableTitles, setAvailableTitles] = useState<any[]>([]);
+  const [selectedBookId, setSelectedBookId] = useState<string>('');
+  const [loadingTitles, setLoadingTitles] = useState(false);
+
+  const loadPendingTitles = async () => {
+    setLoadingTitles(true);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('book_generations')
+        .select('*')
+        .eq('status', 'pending')
+        .eq('current_step', 'awaiting_chapters')
+        .is('chapters', null)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAvailableTitles(data || []);
+      if (data && data.length > 0) {
+        setSelectedBookId(data[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading titles:', error);
+    } finally {
+      setLoadingTitles(false);
+    }
+  };
 
   const generateTitle = async () => {
     setLoading(true);
@@ -72,6 +101,27 @@ export default function AdminGenerateInterface() {
   const approveTitle = async () => {
     setLoading(true);
     try {
+      let titleToUse = bookData?.title;
+      let subtitleToUse = bookData?.subtitle;
+      let bookIdToUse = bookData?.bookId;
+
+      // ↓ NEW CODE: Check if we're using an existing title ↓
+      if (useExistingTitle && selectedBookId) {
+        const selectedBook = availableTitles.find(book => book.id === selectedBookId);
+        if (selectedBook) {
+          titleToUse = selectedBook.title;
+          subtitleToUse = selectedBook.subtitle;
+          bookIdToUse = selectedBook.id;
+
+          // Update bookData with the selected title
+          setBookData({
+            ...bookData,
+            title: titleToUse,
+            subtitle: subtitleToUse,
+            bookId: bookIdToUse
+          });
+        }
+      }
       const response = await fetch('/api/generate/chapters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -246,6 +296,66 @@ export default function AdminGenerateInterface() {
           <Button onClick={generateTitle} loading={loading}>
             Generate Title & Subtitle
           </Button>
+
+          <div className="mb-6 p-4 border border-emerald-500 rounded-lg">
+            <label className="flex items-center space-x-2 mb-4">
+              <input
+                type="checkbox"
+                checked={useExistingTitle}
+                onChange={(e) => setUseExistingTitle(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <span className="font-semibold">Use Existing Title from Database</span>
+            </label>
+
+            {useExistingTitle && (
+              <div className="mt-4">
+                {loadingTitles ? (
+                  <p>Loading available titles...</p>
+                ) : availableTitles.length > 0 ? (
+                  <div>
+                    <label className="block mb-2 text-sm font-medium">
+                      Select a title to generate chapters for:
+                    </label>
+                    <select
+                      value={selectedBookId}
+                      onChange={(e) => setSelectedBookId(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-md bg-gray-700 text-white"
+                    >
+                      {availableTitles.map((book) => (
+                        <option key={book.id} value={book.id}>
+                          {book.title.substring(0, 60)}...
+                        </option>
+                      ))}
+                    </select>
+                    {selectedBookId && (
+                      <div className="mt-2 p-3 bg-gray-700 rounded text-sm">
+                        <p className="font-semibold">Selected Title:</p>
+                        <p>{availableTitles.find(b => b.id === selectedBookId)?.title}</p>
+                        <p className="mt-1 text-gray-400">
+                          {availableTitles.find(b => b.id === selectedBookId)?.subtitle}
+                        </p>
+                      </div>
+                    )}
+                    <Button
+                      onClick={() => {
+                        setStep('title');
+                        approveTitle();
+                      }}
+                      loading={loading}
+                      className="mt-4"
+                    >
+                      Use This Title & Generate Chapters
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-gray-400">
+                    No pending titles found. Insert a title into the database first.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="mt-8 p-4 bg-gray-800 rounded">
             <h3 className="text-lg mb-2">Resume Previous Book</h3>

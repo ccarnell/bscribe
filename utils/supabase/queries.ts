@@ -1,39 +1,38 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { cache } from 'react';
+import { Database } from '@/types_db'; // Adjust path based on your setup
 
-export const getUser = cache(async (supabase: SupabaseClient) => {
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-  return user;
-});
-
-export const getSubscription = cache(async (supabase: SupabaseClient) => {
-  const { data: subscription, error } = await supabase
-    .from('subscriptions')
-    .select('*, prices(*, products(*))')
-    .in('status', ['trialing', 'active'])
-    .maybeSingle();
-
-  return subscription;
-});
-
-export const getProducts = cache(async (supabase: SupabaseClient) => {
-  const { data: products, error } = await supabase
-    .from('products')
-    .select('*, prices(*)')
-    .eq('active', true)
-    .eq('prices.active', true)
-    .order('metadata->index')
-    .order('unit_amount', { referencedTable: 'prices' });
-
-  return products;
-});
-
-export const getUserDetails = cache(async (supabase: SupabaseClient) => {
-  const { data: userDetails } = await supabase
-    .from('users')
+export async function getPendingBookGeneration(supabase: SupabaseClient<Database>) {
+  const { data, error } = await supabase
+    .from('book_generations')
     .select('*')
+    .eq('status', 'pending')
+    .eq('current_step', 'awaiting_chapters')
+    .is('chapters', null)
+    .order('created_at', { ascending: true })
+    .limit(1)
     .single();
-  return userDetails;
-});
+
+  if (error && error.code !== 'PGRST116') throw error;
+  return data;
+}
+
+export async function updateBookGeneration(
+  supabase: SupabaseClient<Database>,
+  id: string,
+  updates: {
+    status?: string;
+    current_step?: string;
+    chapters?: any;
+    chapter_content?: any;
+    revision_count?: number;
+    chapter_revisions?: any;
+    total_revisions?: number;
+  }
+) {
+  const { error } = await supabase
+    .from('book_generations')
+    .update(updates)
+    .eq('id', id);
+
+  if (error) throw error;
+}
