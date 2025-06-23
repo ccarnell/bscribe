@@ -3,22 +3,46 @@ import EmailForm from '@/components/ui/AccountForms/EmailForm';
 import NameForm from '@/components/ui/AccountForms/NameForm';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
-import {
-  getUserDetails,
-  getSubscription,
-  getUser
-} from '@/utils/supabase/queries';
 
 export default async function Account() {
   const supabase = createClient();
-  const [user, userDetails, subscription] = await Promise.all([
-    getUser(supabase),
-    getUserDetails(supabase),
-    getSubscription(supabase)
-  ]);
+
+  // Get the authenticated user
+  const { data: { user }, error } = await supabase.auth.getUser();
 
   if (!user) {
     return redirect('/signin');
+  }
+
+  // Try to get user details - but don't fail if table doesn't exist
+  let userDetails = null;
+  try {
+    const { data } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+    userDetails = data;
+  } catch (e) {
+    // Table might not exist or user might not have a record
+    console.log('Could not fetch user details');
+  }
+
+  // Try to get subscription - but don't fail if table doesn't exist
+  let subscription = null;
+  try {
+    const { data } = await supabase
+      .from('subscriptions')
+      .select('*, prices(*, products(*))')
+      .eq('user_id', user.id)
+      .in('status', ['trialing', 'active'])
+      .order('created', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    subscription = data;
+  } catch (e) {
+    // Table might not exist or user might not have a subscription
+    console.log('Could not fetch subscription');
   }
 
   return (
