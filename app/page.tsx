@@ -208,7 +208,7 @@ export default function HomePage() {
             </svg>
           ))}
         </div>
-        <span className="text-xs text-gray-300 ml-2 break-words md:whitespace-nowrap">(0) Ratings are just a social construct anyway.</span>
+        <span className="text-xs text-gray-300 ml-2 break-words md:whitespace-nowrap">(0) "Ratings" They are just a social construct anyway.</span>
       </div>
     </div>
   );
@@ -233,7 +233,9 @@ export default function HomePage() {
           <p className="text-lg md:text-xl mb-10 text-gray-300 max-w-4xl mx-auto text-center">
             Listen, I've been unemployed for months.
             <br />
-            <br />This is your chance to help me so that I can help you to help yourself by helping others to help me too. And maybe, just maybe, that will help them to help others who do the same.
+            It feels that way at least.
+            <br />
+            <br />This is your chance to help me. Then, I can help you to help yourself by helping others to help me too. And maybe, just maybe, that will help them to help others who do the same.
           </p>
 
           {/* Two Column Book Layout */}
@@ -246,7 +248,7 @@ export default function HomePage() {
                 {freeBook.title}
               </h2>
 
-              <p className="text-xs text-gray-400 mb-2 text-left">7 Pages | Download free digital book</p>
+              <p className="text-xs text-gray-400 mb-2 text-left">7 Pages | <strong>Just take it</strong> | Click and download it for free.</p>
 
               <div className="flex justify-center mb-3">
                 <Image
@@ -303,7 +305,7 @@ export default function HomePage() {
                 {paidBook.title}
               </h2>
 
-              <p className="text-xs text-gray-400 mb-2 text-left">19 Pages | Purchase unhinged digital book</p>
+              <p className="text-xs text-gray-400 mb-2 text-left">19 Pages | <strong>Just buy it.</strong></p>
 
               <div className="flex justify-center mb-3">
                 <Image
@@ -321,7 +323,9 @@ export default function HomePage() {
               <div className="mt-2 mb-1 text-left">
                 <span className="line-through text-red-500 text-lg font-bold">${paidBook.originalPrice.toFixed(2)}</span>
                 <p className="text-xs text-gray-400 mt-1">
-                  Someone mentioned A/B testing... 'price elasticity' (whatever that means). Same product, choose your price.
+                  Someone mentioned A/B testing... 'price elasticity' (whatever that means).
+                  <br />
+                  They're all the same product. Choose your price.
                 </p>
               </div>
 

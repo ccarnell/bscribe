@@ -44,7 +44,7 @@ export default function Footer() {
               </li>
               <li>
                 <span className="text-gray-400">
-                  No "Back to Top" link.
+                  No <em>"Back to Top" link.</em>
                   <br />Literally just scroll up.
                 </span>
               </li>

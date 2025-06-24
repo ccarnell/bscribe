@@ -21,8 +21,17 @@ export default function Navlinks({ user }: NavlinksProps) {
         {/* Bscribe Logo */}
         <Link href="/" className="flex items-center space-x-2" aria-label="Bscribe Home">
           <span className="text-2xl">📚</span>
-          <span className="text-emerald-500 text-2xl font-black">BScribe</span>
-          <span className="text-gray-400 text-sm hidden md:block">.ai</span>
+          <div className="flex flex-col">
+            <div className="flex items-center">
+              <span className="text-emerald-500 text-2xl font-black">BScribe</span>
+              <span className="text-gray-400 text-sm hidden md:block">.ai</span>
+            </div>
+            <span className="text-gray-500 text-xs hidden md:block -mt-1">
+              Is this all really AI-generated?
+              <br />
+              I don't know. You tell me.
+            </span>
+          </div>
         </Link>
       </div>
       
