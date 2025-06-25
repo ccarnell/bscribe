@@ -1,13 +1,15 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { checkAdminAuth } from '../../../../utils/auth-helpers/api-auth';
+import { getIndustryById, getRandomContext } from '@/config/industries';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
-const TITLE_AGENT_PROMPT = `You are the Title/Subtitle Agent for BScribe.ai, a satirical self-help ebook generator that creates hyper self-aware parodies of the self-help industry. Your job is to generate book titles that call out the absurdity we all participate in when buying things we all pretend are going to change our lives this time.
+const TITLE_AGENT_PROMPT = `You are the Title/Subtitle Agent for BScribe.ai, a satirical {INDUSTRY_NAME} ebook generator that creates hyper self-aware parodies of the {INDUSTRY_NAME} industry. Your job is to generate book titles that call out the absurdity we all participate in when buying things we all pretend are going to change our lives this time.
 
+TARGET AUDIENCE: {TARGET_AUDIENCE}
 CONTEXT: {CONTEXT}
 
 REQUIREMENTS:
@@ -15,8 +17,10 @@ REQUIREMENTS:
 - Title: 5-12 words
 - Subtitle: 8-18 words continuing the absurdity
 - Must be funny satirical but believable enough someone might buy it
-- Include self-help clichés but twist them
+- Include {INDUSTRY_NAME} clichés but twist them
 - Reference the context provided but don't be limited by it
+- Mock {EXPERT_TYPES} and their {INDUSTRY_TERMS}
+- Call out {COMMON_MYTHS} that everyone believes
 
 QUALITY CHECKS
 ✓ Would someone screenshot this to share because it's TOO real?
@@ -36,60 +40,6 @@ SUBTITLE: [Your subtitle here]
 
 Do not use ** for bold. Do not use any markdown. Just plain text with the exact format above.`;
 
-// Randomized contexts to prevent repetition
-const RANDOM_CONTEXTS = [
-  "The [Number] format (7)",
-  "F*ck/Sh*t trend (VERY sparingly - maybe 20% of titles)",
-  "productivity obsession",
-  "Secrets of... (class problem-solver setup)",
-  "How to...",
-  "hustle culture",
-  "The Art of...",
-  "Everything You Need to Know About...",
-  "The Science of...",
-  "Why...",
-  "[Millionaire/Billionaire] (Wealth)",
-  "...for Dummies/Idiots/Beginners",
-  "(wellness trends and expensive supplements)",
-  "The Power of...",
-  "Not Giving a...",
-  "...That Will Change Your Life Forever",
-  "The [Number}-[Time] (Minute/Hour/Day/Week/Month) [Solution]",
-  "(crypo bros or financial freedom)",
-  "(personal branding and though leadership)",
-  "From Zero to Hero",
-  "The Ultimate Guide",
-  "(identity aspirational formula)",
-  "Win at Life (vague outcome promise)",
-  "(biohacking)",
-  "The [Adjective] [Method/System/Guide]",
-  "What [Group] Doesn't Want You to Know",
-  "The [Adjective] [Topic] Revolution",
-  "(startup culture and failing upward)",
-  "The [Adjective] Way to [Result]",
-  "(cultural anxiety / chaos trope)",
-  "(pseudo-wisdome name-dropping)",
-  "(Tony-Robbings-meets-Instagram motif)",
-  "(Morning routing fetishism)",
-  "(self-care industrial complex)",
-  "(AI-speak parodies)",
-  "(LinkedIn thought leader parodies)",
-  "(humblebrag launch posts with emojis",
-  "(manifestation and law of attraction)",
-  "...Unbreakable Habits",
-  "Grit, Genius, and Getting to Your Goals (alliteration)",
-  "...in a [Place] That...",
-  "Why Everything You Know is Wrong About [Topic]",
-  "The [Number] [Things]...",
-  "From [Bad] to [Good]",
-  "(buzzwords and jargon overload)",
-  "(buying productivity books instead of working)",
-  "(thinking morning routines fix everything)",
-  "(following obvious grifters)",
-  "(believing in 'life hacks' for complex problems",
-  "(success mythology)"
-];
-
 export async function POST(request: NextRequest) {
   const authResult = await checkAdminAuth(request);
   if (authResult instanceof Response) {
@@ -97,8 +47,28 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Get random context
-    const randomContext = RANDOM_CONTEXTS[Math.floor(Math.random() * RANDOM_CONTEXTS.length)];
+    const { industry = 'self-help' } = await request.json();
+    
+    // Get industry configuration
+    const industryConfig = getIndustryById(industry);
+    if (!industryConfig) {
+      return Response.json(
+        { success: false, error: 'Invalid industry specified' },
+        { status: 400 }
+      );
+    }
+
+    // Get random context for this industry
+    const randomContext = getRandomContext(industry);
+    
+    // Build the prompt with industry-specific variables
+    const prompt = TITLE_AGENT_PROMPT
+      .replace(/{INDUSTRY_NAME}/g, industryConfig.name)
+      .replace('{TARGET_AUDIENCE}', industryConfig.targetAudience)
+      .replace('{CONTEXT}', randomContext)
+      .replace('{EXPERT_TYPES}', industryConfig.voiceAdjustments.expertTypes.join(', '))
+      .replace('{INDUSTRY_TERMS}', industryConfig.voiceAdjustments.industrySpecificTerms.join(', '))
+      .replace('{COMMON_MYTHS}', industryConfig.voiceAdjustments.commonMyths.join(', '));
     
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -106,7 +76,7 @@ export async function POST(request: NextRequest) {
       temperature: 0.95, // Higher for more creativity
       messages: [{
         role: 'user',
-        content: TITLE_AGENT_PROMPT.replace('{CONTEXT}', randomContext)
+        content: prompt
       }]
     });
 
@@ -135,7 +105,8 @@ export async function POST(request: NextRequest) {
       title,
       subtitle,
       absurdity,
-      context: randomContext
+      context: randomContext,
+      industry: industry
     });
       
   } catch (error) {

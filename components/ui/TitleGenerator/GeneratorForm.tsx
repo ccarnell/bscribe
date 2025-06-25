@@ -308,15 +308,15 @@ export default function GeneratorForm() {
         </div>
       )}
       
-      <div className="bg-[#1a1a1a] rounded-lg p-6 mb-6">
+      <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-6 mb-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold">Generate Your Satirical Book Titles</h2>
-          <div className={`text-sm ${totalApiCallsUsed >= MAX_API_CALLS && !isDev ? 'text-red-400' : 'text-gray-300'}`}>
-            API calls used: {totalApiCallsUsed}/{MAX_API_CALLS}
+          <h2 className="text-2xl font-bold text-white">Generate Your Satirical Book Titles</h2>
+          <div className={`text-sm px-3 py-1 rounded-full ${totalApiCallsUsed >= MAX_API_CALLS && !isDev ? 'bg-red-900/20 border border-red-800 text-red-400' : 'bg-zinc-700 border border-zinc-600 text-gray-300'}`}>
+            {totalApiCallsUsed}/{MAX_API_CALLS} API calls
           </div>
         </div>
         
-        <p className="text-gray-300 mb-6">
+        <p className="text-gray-300 mb-6 leading-relaxed">
           You have 3 title slots, with up to 4 API calls per slot. Generate titles, then select your favorites to submit for community voting.
         </p>
         

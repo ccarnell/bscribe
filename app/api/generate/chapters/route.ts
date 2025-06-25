@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { checkAdminAuth } from '@/utils/auth-helpers/api-auth';
 import { createClient } from '@supabase/supabase-js';
+import { getIndustryById } from '@/config/industries';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,17 +13,21 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
-const CHAPTER_AGENT_PROMPT = `You are the Chapter Titles Agent for BScribe.ai, a satirical self-help ebook generator that creates hyper self-aware parodies of the self-help industry. Your job is to create a satirical self-help book structure that's hyper self-aware about being a bullshit book, breaks the fourth wall, and maintains adult edge without becoming childishly goofy.
+const CHAPTER_AGENT_PROMPT = `You are the Chapter Titles Agent for BScribe.ai, a satirical {INDUSTRY_NAME} ebook generator that creates hyper self-aware parodies of the {INDUSTRY_NAME} industry. Your job is to create a satirical {INDUSTRY_NAME} book structure that's hyper self-aware about being a bullshit book, breaks the fourth wall, and maintains adult edge without becoming childishly goofy.
+
+TARGET AUDIENCE: {TARGET_AUDIENCE}
 
 ## INPUT CONTEXT
-You will receive an approved book title and subtitle. Create chapter titles that build an absurd yet followable journey through the book's premise.
+You will receive an approved book title and subtitle. Create chapter titles that build an absurd yet followable journey through the book's premise, specifically targeting {INDUSTRY_NAME} tropes and {EXPERT_TYPES}.
 
 ## BRAND VOICE
 * Hyper self-aware about being an AI-generated book
 * Breaks the fourth wall ("Yes, we're really doing this")
 * Adult satire with edge, not childish goofiness
-* Call out the grift while grifting
+* Call out the {INDUSTRY_NAME} grift while grifting
 * Strategic profanity for emphasis, not shock value
+* Mock {COMMON_MYTHS} that {TARGET_AUDIENCE} believe
+* Parody {INDUSTRY_TERMS} and {EXPERT_TYPES}
 
 ## CHAPTER STRUCTURE RULES
 
@@ -54,7 +59,7 @@ You will receive an approved book title and subtitle. Create chapter titles that
 Mix different approaches across chapters. Some examples (but don't limit yourself):
 * Technical jargon applied to human problems
 * Accidentally profound observations
-* Meta-commentary on self-help tropes
+* Meta-commentary on {INDUSTRY_NAME} tropes
 * Deadpan practical advice in absurd contexts
 * Complete narrative breakdowns
 * Modern references that date the book immediately
@@ -76,7 +81,24 @@ export async function POST(request: NextRequest) {
     return authResult;
   }
   try {
-    const { bookId, title, subtitle } = await request.json();
+    const { bookId, title, subtitle, industry = 'self-help' } = await request.json();
+
+    // Get industry configuration
+    const industryConfig = getIndustryById(industry);
+    if (!industryConfig) {
+      return Response.json(
+        { success: false, error: 'Invalid industry specified' },
+        { status: 400 }
+      );
+    }
+
+    // Build the prompt with industry-specific variables
+    const prompt = CHAPTER_AGENT_PROMPT
+      .replace(/{INDUSTRY_NAME}/g, industryConfig.name)
+      .replace('{TARGET_AUDIENCE}', industryConfig.targetAudience)
+      .replace('{EXPERT_TYPES}', industryConfig.voiceAdjustments.expertTypes.join(', '))
+      .replace('{INDUSTRY_TERMS}', industryConfig.voiceAdjustments.industrySpecificTerms.join(', '))
+      .replace('{COMMON_MYTHS}', industryConfig.voiceAdjustments.commonMyths.join(', '));
 
     // Add random chapter count instruction
     const targetChapters = Math.floor(Math.random() * 13) + 3; // 3-15 random
@@ -88,7 +110,7 @@ export async function POST(request: NextRequest) {
       temperature: 0.9,
       messages: [{
         role: 'user',
-        content: CHAPTER_AGENT_PROMPT +
+        content: prompt +
           `\n\nBOOK TITLE: ${title}\nSUBTITLE: ${subtitle}` +
           chapterInstruction
       }]
@@ -118,7 +140,8 @@ export async function POST(request: NextRequest) {
         .from('book_generations')
         .update({
           chapters: chapterTitles,
-          current_step: 'chapters'
+          current_step: 'chapters',
+          industry: industry
         })
         .eq('id', bookId)
         .select()
@@ -135,7 +158,8 @@ export async function POST(request: NextRequest) {
           chapters: chapterTitles,
           current_step: 'chapters',
           status: 'draft',
-          user_id: null
+          user_id: null,
+          industry: industry
         })
         .select()
         .single();
@@ -159,6 +183,7 @@ export async function POST(request: NextRequest) {
       success: true,
       bookId: data.id,
       chapterTitles: data.chapters,
+      industry: industry,
       rawResponse: text
     });
 

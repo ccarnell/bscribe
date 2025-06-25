@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { checkAdminAuth } from '@/utils/auth-helpers/api-auth';
 import { createClient } from '@supabase/supabase-js';
+import { getIndustryById } from '@/config/industries';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,26 +13,30 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
-const CONTENT_AGENT_PROMPT = `You are the Content Agent for BScribe.ai, responsible for writing individual chapters of satirical self-help books that we all know are bullshit but still buy what they're selling us anyway. You transform chapter titles into hyper self-aware conetent that maintains comedic momentum and takes the creative writing process and makes it chaos theory's little bitch. 
+const CONTENT_AGENT_PROMPT = `You are the Content Agent for BScribe.ai, responsible for writing individual chapters of satirical {INDUSTRY_NAME} books that we all know are bullshit but still buy what they're selling us anyway. You transform chapter titles into hyper self-aware content that maintains comedic momentum and takes the creative writing process and makes it chaos theory's little bitch. 
 
+TARGET AUDIENCE: {TARGET_AUDIENCE}
 BOOK: {TITLE}
 CHAPTER: {CHAPTER}
 
 CRITICAL RULES:
 1. This is SATIRE. Be funny first, helpful by accident
 2. You and the reader both know this is bullshit - that's the joke
-3. Mock the self-help industry WHILE participating in it
+3. Mock the {INDUSTRY_NAME} industry WHILE participating in it
 4. Any real advice should be buried in absurdity
 5. Be self-deprecating, not mean to readers
 6. Repetitive phrases, openings, closings, transitions, structures, adjectives, and jokes are forbidden. Make the chaos rain irrational variability.
+7. Call out {COMMON_MYTHS} that {TARGET_AUDIENCE} believe
+8. Parody {EXPERT_TYPES} and their {INDUSTRY_TERMS}
 
 VOICE GUIDELINES:
 - "I'm literally an AI pretending to help you" energy
 - Accidentally profound while being deliberately stupid
-- Call out the grift while grifting
+- Call out the {INDUSTRY_NAME} grift while grifting
 - Break the fourth wall when it's funny
 - Use profanity sparingly but effectively
 - Don't hold back from going meta
+- Mock {EXPERT_TYPES} without being cruel to {TARGET_AUDIENCE}
 
 STRUCTURAL VARIETY (MIX THESE UP):
 - One-word paragraphs. Bang.
@@ -104,6 +109,12 @@ export async function POST(request: NextRequest) {
       throw new Error(`Book not found: ${bookId}`);
     }
 
+    // Get industry configuration
+    const industryConfig = getIndustryById(book.industry || 'self-help');
+    if (!industryConfig) {
+      throw new Error('Invalid industry configuration');
+    }
+
     // Get used patterns
     const { data: patterns } = await supabaseAdmin
       .from('pattern_tracking')
@@ -126,6 +137,18 @@ export async function POST(request: NextRequest) {
       additionalGuidance = `\n\nREVISION REQUIRED:\n${revisionGuidance}\n\nMake this COMPLETELY DIFFERENT. New voice, new structure, new jokes.`;
     }
 
+    // Build the prompt with industry-specific variables
+    const prompt = CONTENT_AGENT_PROMPT
+      .replace(/{INDUSTRY_NAME}/g, industryConfig.name)
+      .replace('{TARGET_AUDIENCE}', industryConfig.targetAudience)
+      .replace('{TITLE}', book.title)
+      .replace('{CHAPTER}', `${chapterNumber}. ${chapterTitle}`)
+      .replace('{FORBIDDEN}', forbiddenList)
+      .replace('{WORDS}', wordTarget)
+      .replace('{EXPERT_TYPES}', industryConfig.voiceAdjustments.expertTypes.join(', '))
+      .replace('{INDUSTRY_TERMS}', industryConfig.voiceAdjustments.industrySpecificTerms.join(', '))
+      .replace('{COMMON_MYTHS}', industryConfig.voiceAdjustments.commonMyths.join(', '));
+
     // Generate content with retry Logic
     let content = '';
     let attempts = 0;
@@ -142,11 +165,7 @@ export async function POST(request: NextRequest) {
           temperature: Math.min(0.99, 0.9 + (chapterNumber * 0.02)),
           messages: [{
             role: 'user',
-            content: CONTENT_AGENT_PROMPT
-              .replace('{TITLE}', book.title)
-              .replace('{CHAPTER}', `${chapterNumber}. ${chapterTitle}`)
-              .replace('{FORBIDDEN}', forbiddenList)
-              .replace('{WORDS}', wordTarget) +
+            content: prompt +
               `\n\nContext:\n${recentContext}` +
               additionalGuidance
           }]
