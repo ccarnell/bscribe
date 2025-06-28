@@ -77,6 +77,27 @@ export async function GET(request: Request) {
     // Success - return the file
     const fileName = filePath.split('/').pop() || 'download.pdf';
     
+    // Log the actual file download
+    try {
+      const url = new URL(request.url);
+      const sessionId = url.searchParams.get('session_id') || 'direct_download';
+      const customerEmail = url.searchParams.get('customer_email') || null;
+      
+      await supabaseAdmin
+        .from('download_logs')
+        .insert({
+          session_id: sessionId,
+          book_title: fileName.replace('.pdf', '').replace('-', ' '),
+          customer_email: customerEmail,
+          downloaded_at: new Date().toISOString()
+        });
+        
+      console.log(`✅ File download logged: ${fileName} for session: ${sessionId}`);
+    } catch (logError) {
+      console.error('Failed to log file download:', logError);
+      // Continue anyway - the download is more important than logging
+    }
+    
     return new Response(data, {
       headers: {
         'Content-Type': 'application/pdf',

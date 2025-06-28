@@ -14,18 +14,19 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // === DOWNLOAD ANALYTICS ===
     // Total downloads
     const { data: totalData } = await supabaseAdmin
       .from('download_logs')
       .select('*', { count: 'exact' });
 
-    // Unique customers
+    // Unique customers from downloads
     const { data: uniqueData } = await supabaseAdmin
       .from('download_logs')
       .select('customer_email')
       .not('customer_email', 'is', null);
     
-    const uniqueCustomers = new Set(uniqueData?.map(d => d.customer_email)).size;
+    const uniqueDownloadCustomers = new Set(uniqueData?.map(d => d.customer_email)).size;
 
     // Downloads by book - manual aggregation
     const { data: allDownloads } = await supabaseAdmin
@@ -62,28 +63,99 @@ export async function GET(request: NextRequest) {
       .order('downloaded_at', { ascending: false })
       .limit(20);
     
-    // Daily stats - manual aggregation
+    // Daily download stats
     const { data: dailyDownloads } = await supabaseAdmin
       .from('download_logs')
       .select('downloaded_at');
     
-    const dailyStats: Record<string, number> = {};
+    const dailyDownloadStats: Record<string, number> = {};
     dailyDownloads?.forEach(download => {
       const date = new Date(download.downloaded_at).toISOString().split('T')[0];
-      dailyStats[date] = (dailyStats[date] || 0) + 1;
+      dailyDownloadStats[date] = (dailyDownloadStats[date] || 0) + 1;
     });
 
-    const dailyData = Object.entries(dailyStats)
+    const dailyDownloadData = Object.entries(dailyDownloadStats)
       .map(([date, downloads]) => ({ download_date: date, downloads }))
       .sort((a, b) => b.download_date.localeCompare(a.download_date))
       .slice(0, 30);
 
+    // === PURCHASE ANALYTICS ===
+    // Total purchases and revenue
+    const { data: purchaseData } = await supabaseAdmin
+      .from('purchases')
+      .select('amount_cents, status, purchased_at, download_type, buyer_id')
+      .eq('status', 'succeeded');
+
+    const totalPurchases = purchaseData?.length || 0;
+    const totalRevenue = purchaseData?.reduce((sum, p) => sum + (p.amount_cents || 0), 0) || 0;
+    const uniquePurchaseCustomers = new Set(purchaseData?.map(p => p.buyer_id)).size;
+
+    // Purchase breakdown by type
+    const purchaseBreakdown: Record<string, { count: number; revenue: number }> = {};
+    purchaseData?.forEach(purchase => {
+      const type = purchase.download_type || 'unknown';
+      if (!purchaseBreakdown[type]) {
+        purchaseBreakdown[type] = { count: 0, revenue: 0 };
+      }
+      purchaseBreakdown[type].count++;
+      purchaseBreakdown[type].revenue += purchase.amount_cents || 0;
+    });
+
+    // Daily purchase stats
+    const dailyPurchaseStats: Record<string, { count: number; revenue: number }> = {};
+    purchaseData?.forEach(purchase => {
+      const date = new Date(purchase.purchased_at).toISOString().split('T')[0];
+      if (!dailyPurchaseStats[date]) {
+        dailyPurchaseStats[date] = { count: 0, revenue: 0 };
+      }
+      dailyPurchaseStats[date].count++;
+      dailyPurchaseStats[date].revenue += purchase.amount_cents || 0;
+    });
+
+    const dailyPurchaseData = Object.entries(dailyPurchaseStats)
+      .map(([date, stats]) => ({ 
+        purchase_date: date, 
+        purchases: stats.count,
+        revenue_cents: stats.revenue 
+      }))
+      .sort((a, b) => b.purchase_date.localeCompare(a.purchase_date))
+      .slice(0, 30);
+
+    // === COMBINED ANALYTICS ===
+    // Check for discrepancies
+    const discrepancies = {
+      purchasesWithoutDownloads: 0,
+      downloadsWithoutPurchases: 0
+    };
+
+    // This is a simplified check - in production you'd want more sophisticated correlation
+    const downloadEmails = new Set(uniqueData?.map(d => d.customer_email).filter(Boolean));
+    const purchaseCustomers = new Set(purchaseData?.map(p => p.buyer_id).filter(Boolean));
+    
+    discrepancies.purchasesWithoutDownloads = purchaseCustomers.size - downloadEmails.size;
+    discrepancies.downloadsWithoutPurchases = downloadEmails.size - purchaseCustomers.size;
+
     return Response.json({
+      // Download metrics
       totalDownloads: totalData?.length || 0,
-      uniqueCustomers,
-      bookBreakdown: bookBreakdown,
+      uniqueDownloadCustomers,
+      bookBreakdown,
       recentDownloads: recentData || [],
-      dailyStats: dailyData
+      dailyDownloadStats: dailyDownloadData,
+      
+      // Purchase metrics
+      totalPurchases,
+      totalRevenueCents: totalRevenue,
+      uniquePurchaseCustomers,
+      purchaseBreakdown: Object.entries(purchaseBreakdown).map(([type, stats]) => ({
+        download_type: type,
+        purchases: stats.count,
+        revenue_cents: stats.revenue
+      })),
+      dailyPurchaseStats: dailyPurchaseData,
+      
+      // Health metrics
+      discrepancies
     });
 
   } catch (error) {

@@ -43,7 +43,15 @@ function SuccessContent() {
         setTimeout(() => {
           console.log(`Downloading: ${download.filename}`);
           const a = document.createElement('a');
-          a.href = download.url;
+          
+          // Add session and customer info to download URL for tracking
+          const downloadUrl = new URL(download.url, window.location.origin);
+          downloadUrl.searchParams.set('session_id', sessionId || '');
+          if (result.customerEmail) {
+            downloadUrl.searchParams.set('customer_email', result.customerEmail);
+          }
+          
+          a.href = downloadUrl.toString();
           a.download = download.filename;
           a.click();
         }, index * 1000); // 1 second delay between downloads

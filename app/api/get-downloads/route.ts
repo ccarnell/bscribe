@@ -71,9 +71,31 @@ export async function POST(request: NextRequest) {
     
     console.log(`Returning ${downloads.length} downloads:`, downloads.map(d => d.filename));
     
+    // Log each download to download_logs table
+    try {
+      const customerEmail = session.customer_details?.email || null;
+      
+      for (const download of downloads) {
+        await supabaseAdmin
+          .from('download_logs')
+          .insert({
+            session_id: sessionId,
+            book_title: download.filename.replace('.pdf', '').replace('-', ' '),
+            customer_email: customerEmail,
+            downloaded_at: new Date().toISOString()
+          });
+      }
+      
+      console.log(`✅ Logged ${downloads.length} downloads for customer: ${customerEmail}`);
+    } catch (logError) {
+      console.error('Failed to log downloads:', logError);
+      // Continue anyway - downloads are more important than logging
+    }
+    
     return NextResponse.json({ 
       downloads,
-      purchaseType: downloads.length > 1 ? 'bundle' : 'individual'
+      purchaseType: downloads.length > 1 ? 'bundle' : 'individual',
+      customerEmail: session.customer_details?.email || null
     });
     
   } catch (error) {
